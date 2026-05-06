@@ -2,7 +2,7 @@
 
 **Target OS:** Ubuntu 24.04 LTS  
 **Hardware:** AMD Ryzen 7 7800X3D, NVIDIA RTX 5070 Ti (16GB), 32GB RAM  
-**Purpose:** Prepare the bare-metal node for k3s, Docker, and GPU passthrough  
+**Purpose:** Prepare the bare-metal node for k3s with containerd and GPU passthrough  
 
 ---
 
@@ -99,77 +99,7 @@ Tue Jul  2 18:00:00 2026
 
 ---
 
-## Step 2: Install Docker Engine
-
-### Remove Old Docker Versions
-
-```bash
-for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do
-    sudo apt-get remove -y $pkg;
-done
-```
-
-### Set Up Docker Repository
-
-```bash
-# Add Docker's official GPG key
-sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-sudo chmod a+r /etc/apt/keyrings/docker.gpg
-
-# Set up the repository
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-  $(. /etc/os_release && echo "$VERSION_CODENAME") stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-sudo apt update
-```
-
-### Install Docker Engine
-
-```bash
-# Install Docker Engine, CLI, and Compose plugin
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-# Start and enable Docker service
-sudo systemctl start docker
-sudo systemctl enable docker
-
-# Verify Docker installation
-docker --version
-```
-
-**Expected Output:**
-```
-Docker version 27.0.0, build 0000000
-```
-
-### Add User to Docker Group
-
-```bash
-# Add current user to docker group
-sudo usermod -aG docker $USER
-
-# Apply group membership (log out and back in, or use newgrp)
-newgrp docker
-```
-
-### Verify Docker Without Sudo
-
-```bash
-docker run hello-world
-```
-
-**Expected Output:**
-```
-Hello from Docker!
-This message shows that your installation appears to be working correctly.
-```
-
----
-
-## Step 3: Install NVIDIA Container Toolkit
+## Step 2: Install NVIDIA Container Toolkit
 
 ### Add NVIDIA Repository
 
@@ -198,44 +128,34 @@ nvidia-container-cli --version
 NVIDIA Container Toolkit version: 1.16.0
 ```
 
-### Configure Docker to Use NVIDIA Runtime
+### Configure containerd to Use NVIDIA Runtime
 
 ```bash
-# Generate Docker daemon configuration with NVIDIA runtime
-sudo nvidia-ctk runtime configure --runtime=docker
+# Generate containerd configuration with NVIDIA runtime
+sudo nvidia-ctk runtime configure --runtime=containerd
 
-# Restart Docker daemon to apply configuration
-sudo systemctl restart docker
+# Restart k3s service to apply configuration
+sudo systemctl restart k3s
 ```
 
-### Verify Docker Configuration
+### Verify containerd Configuration
 
 ```bash
-# Check that nvidia runtime is configured
-sudo docker info | grep -i "runtime"
+# Check that nvidia runtime is configured in containerd
+sudo cat /etc/containerd/config.toml | grep -A 5 "nvidia-container-runtime"
 
-# Expected output should include: nvidia
+# Expected output should include the nvidia runtime configuration
 ```
-
-### Test GPU Passthrough with Docker
-
-```bash
-# Run a container with GPU access
-docker run --rm --gpus all nvidia/cuda:12.1.0-base-ubuntu22.04 nvidia-smi
-```
-
-**Expected Output:** Same as host `nvidia-smi` output, confirming GPU passthrough works.
 
 ---
 
-## Step 4: Install k3s with Docker Runtime
+## Step 3: Install k3s with containerd Runtime
 
-### Install k3s with Docker Flag
+### Install k3s
 
 ```bash
-# Download and install k3s with Docker runtime
+# Download and install k3s with containerd runtime (default)
 curl -sfL https://get.k3s.io | sh -s - \
-  --docker \
   --disable traefik \
   --disable servicelb \
   --node-name gpu-node-1 \
@@ -244,12 +164,13 @@ curl -sfL https://get.k3s.io | sh -s - \
 ```
 
 **Installation Flags Explained:**
-- `--docker`: Use Docker as container runtime instead of containerd (required for NVIDIA Container Toolkit integration)
 - `--disable traefik`: Disable default Traefik ingress (we'll use Nginx ingress later)
 - `--disable servicelb`: Disable default ServiceLB (we'll use Nginx ingress for load balancing)
 - `--node-name gpu-node-1`: Explicit node naming for consistent identification
 - `--write-kubeconfig-mode 644`: Allow non-root users to read kubeconfig
 - `--tls-san gpu-node-1`: Add node name to TLS certificate SANs for API access
+
+**Note:** k3s uses containerd as the default container runtime. The NVIDIA Container Toolkit was configured to work with containerd in the previous step.
 
 ### Verify k3s Installation
 
@@ -279,13 +200,13 @@ kubectl get nodes
 # gpu-node-1   Ready    control-plane,master   10s   v1.29.0+k3s1
 ```
 
-### Verify Docker Runtime in k3s
+### Verify containerd Runtime in k3s
 
 ```bash
-# Check that k3s is using Docker runtime
+# Check that k3s is using containerd runtime
 sudo crictl info | grep "runtime"
 
-# Expected output should include docker
+# Expected output should include containerd
 ```
 
 ### Verify GPU Device Visibility on Node
@@ -310,7 +231,7 @@ Allocatable:
 
 ---
 
-## Step 5: Install Helm (Package Manager)
+## Step 4: Install Helm (Package Manager)
 
 Helm is required for deploying the NVIDIA Device Plugin and observability stack.
 
@@ -351,7 +272,7 @@ prometheus-community    https://prometheus-community.github.io/helm-charts
 
 ---
 
-## Step 6: Create Namespaces
+## Step 5: Create Namespaces
 
 Create the required namespaces for organized resource deployment:
 
@@ -400,13 +321,9 @@ Complete the following verification steps before proceeding to GPU Time-Slicing 
 nvidia-smi
 # Expected: GPU information displayed
 
-# 2. Verify Docker is running with NVIDIA runtime
-sudo docker info | grep -i "nvidia"
-# Expected: nvidia runtime listed
-
-# 3. Verify Docker GPU passthrough
-docker run --rm --gpus all nvidia/cuda:12.1.0-base-ubuntu22.04 nvidia-smi
-# Expected: Same as host nvidia-smi
+# 2. Verify containerd is configured with NVIDIA runtime
+sudo cat /etc/containerd/config.toml | grep -A 5 "nvidia-container-runtime"
+# Expected: nvidia runtime configuration present
 
 # 4. Verify k3s is running
 sudo systemctl status k3s
@@ -420,9 +337,9 @@ kubectl get nodes
 ### ✅ Kubernetes-Level Verification
 
 ```bash
-# 6. Verify k3s is using Docker runtime
+# 6. Verify k3s is using containerd runtime
 sudo crictl info | grep "Runtime"
-# Expected: docker listed as runtime
+# Expected: containerd listed as runtime
 
 # 7. Verify namespaces exist
 kubectl get namespaces
@@ -437,7 +354,7 @@ helm repo list
 
 ## Troubleshooting
 
-### Issue: k3s fails to start after Docker installation
+### Issue: k3s fails to start after NVIDIA Container Toolkit configuration
 
 **Symptom:** `sudo systemctl status k3s` shows failed state.
 
@@ -446,24 +363,24 @@ helm repo list
 # Check k3s logs
 sudo journalctl -u k3s -n 50
 
-# If Docker socket permission issue:
-sudo chmod 666 /var/run/docker.sock
+# If containerd configuration issue:
+sudo nvidia-ctk runtime configure --runtime=containerd
 sudo systemctl restart k3s
 ```
 
-### Issue: Docker cannot access GPU
+### Issue: GPU not accessible in pods
 
-**Symptom:** `docker run --gpus all` fails with "could not select device driver".
+**Symptom:** Pods requesting `nvidia.com/gpu` fail with "Insufficient nvidia.com/gpu".
 
 **Solution:**
 ```bash
-# Reconfigure NVIDIA runtime
-sudo nvidia-ctk runtime configure --runtime=docker
-sudo systemctl restart docker
+# Reconfigure NVIDIA runtime for containerd
+sudo nvidia-ctk runtime configure --runtime=containerd
+sudo systemctl restart k3s
 
 # Verify configuration
-cat /etc/docker/daemon.json
-# Should contain: "runtimes": {"nvidia": {"path": "nvidia-container-runtime"}}
+sudo cat /etc/containerd/config.toml | grep -A 5 "nvidia-container-runtime"
+# Should contain the nvidia runtime configuration
 ```
 
 ### Issue: kubectl command not found

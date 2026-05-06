@@ -120,6 +120,12 @@ kubectl apply -f manifests/networking/default-deny-all.yaml -n gpu-infrastructur
 # Apply to monitoring
 kubectl apply -f manifests/networking/default-deny-all.yaml -n monitoring
 
+# Apply to minio
+kubectl apply -f manifests/networking/default-deny-all.yaml -n minio
+
+# Apply to velero
+kubectl apply -f manifests/networking/default-deny-all.yaml -n velero
+
 # Verify policies are applied
 kubectl get networkpolicies -A
 
@@ -128,6 +134,8 @@ kubectl get networkpolicies -A
 # ml-workloads        default-deny-all   <none>          10s
 # gpu-infrastructure  default-deny-all   <none>          10s
 # monitoring          default-deny-all   <none>          10s
+# minio               default-deny-all   <none>          10s
+# velero              default-deny-all   <none>          10s
 ```
 
 ---
@@ -423,7 +431,65 @@ kubectl get networkpolicies -n monitoring
 
 ---
 
-## Step 7: Service Account and RBAC
+## Step 7: Backup and Storage NetworkPolicy
+
+### Allow MinIO Ingress
+
+```yaml
+# manifests/networking/minio-ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-minio-ingress
+  namespace: minio
+spec:
+  podSelector:
+    matchLabels:
+      app: minio
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: velero
+    ports:
+    - protocol: TCP
+      port: 9000
+```
+
+### Allow Velero Cross-Namespace Egress
+
+```yaml
+# manifests/networking/velero-egress.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-velero-egress
+  namespace: velero
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector: {} # Allow egress to all namespaces for backup
+  - to:
+    - ipBlock:
+        cidr: 10.0.0.0/8 # Kubernetes API access
+```
+
+### Apply Backup and Storage Policies
+
+```bash
+# Apply minio and velero policies
+kubectl apply -f manifests/networking/minio-ingress.yaml
+kubectl apply -f manifests/networking/velero-egress.yaml
+```
+
+---
+
+## Step 8: Service Account and RBAC
 
 ### Create Dedicated ServiceAccounts
 
@@ -484,7 +550,7 @@ kubectl get serviceaccounts -n ml-workloads
 
 ---
 
-## Step 8: Pod Security Standards
+## Step 9: Pod Security Standards
 
 ### Apply Pod Security Admission
 
@@ -530,7 +596,7 @@ spec:
 
 ```bash
 # Patch deployments with security context
-kubectlpatch deployment embedding-service -n ml-workloads --type='json' -p='[
+kubectl patch deployment embedding-service -n ml-workloads --type='json' -p='[
   {
     "op": "add",
     "path": "/spec/template/spec/securityContext",
@@ -545,13 +611,13 @@ kubectlpatch deployment embedding-service -n ml-workloads --type='json' -p='[
 
 ---
 
-## Step 9: Verify Network Isolation
+## Step 10: Verify Network Isolation
 
 ### Test Inter-Service Communication (Should Fail)
 
 ```bash
 # Test that embedding service cannot reach vision service
-kubectl exec -n ml-worklights deployment/embedding-service -- curl -s http://vision-service:8001/health
+kubectl exec -n ml-workloads deployment/embedding-service -- curl -s http://vision-service:8001/health
 
 # Expected output: Connection refused or timeout (NetworkPolicy blocking)
 ```
@@ -585,7 +651,7 @@ kubectl exec -n ml-workloads deployment/embedding-service -- curl -s https://ghc
 
 ---
 
-## Step 10: Security Best Practices
+## Step 11: Security Best Practices
 
 ### Image Security
 

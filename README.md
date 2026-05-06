@@ -139,6 +139,24 @@ This repository includes comprehensive, production-ready documentation in the `d
 4. **[docs/04-observability-dcgm.md](docs/04-observability-dcgm.md)**  
    Observability stack: DCGM Exporter deployment, Prometheus and Grafana setup via Helm, critical PromQL queries for GPU monitoring, and alerting rule configuration.
 
+5. **[docs/05-gitops-cicd.md](docs/05-gitops-cicd.md)**  
+   GitOps and CI/CD: Automated container image builds, security scanning with GitHub Actions, and ArgoCD deployment pipeline.
+
+6. **[docs/06-finops-roi-analysis.md](docs/06-finops-roi-analysis.md)**  
+   Financial analysis: Cloud vs. bare-metal cost comparison, ROI calculations, and carbon footprint metrics.
+
+7. **[docs/07-performance-benchmarks.md](docs/07-performance-benchmarks.md)**  
+   Performance testing: Locust load testing for APIs, performance metrics, and capacity planning.
+
+8. **[docs/08-hardware-power-optimization.md](docs/08-hardware-power-optimization.md)**  
+   Power optimization: GreenOps practices, NVIDIA power capping, thermal target configuration, and energy savings.
+
+9. **[docs/09-security-and-network-isolation.md](docs/09-security-and-network-isolation.md)**  
+   Security hardening: Kubernetes NetworkPolicy for zero-trust isolation, RBAC, and pod security standards.
+
+10. **[docs/10-disaster-recovery.md](docs/10-disaster-recovery.md)**  
+    Disaster recovery: Velero automated backups to MinIO, RTO/RPO objectives, and complete cluster recovery.
+
 ---
 
 ## Prerequisites

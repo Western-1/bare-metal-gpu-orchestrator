@@ -533,7 +533,7 @@ nvidia-smi --query-gpu=fan.speed --format=csv,noheader
 sudo nvidia-smi -pl 200
 
 # Or adjust thermal target
-sudo nvidia-smi -tg75  # Increase target to 75°C
+sudo nvidia-smi -tg 75  # Increase target to 75°C
 ```
 
 ### Issue: Performance degradation > 15%

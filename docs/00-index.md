@@ -237,7 +237,7 @@ Ensure business continuity with:
 ### For Architecture Review
 
 - **High-level design:** Review the relationship matrix and diagrams in this document
-- **Deep technical details:** Refer to `../ARCHITECTURE.md` for comprehensive methodology explanations
+- **Deep technical details:** Refer to [ARCHITECTURE.md](../ARCHITECTURE.md) for comprehensive methodology explanations
 - **Implementation specifics:** Each component document provides exact YAML, bash commands, and code snippets
 
 ---
