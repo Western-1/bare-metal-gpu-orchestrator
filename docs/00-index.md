@@ -224,6 +224,34 @@ Ensure business continuity with:
 - RTO/RPO objectives and testing procedures
 - Complete cluster recovery runbook
 
+**Remote Server Deployment:** `11-remote-server-deployment.md`
+
+Deploy on public bare-metal securely with:
+- Server hardening and UFW firewalls
+- Ingress with cert-manager Let's Encrypt TLS
+- Grafana Basic Authentication
+
+**Model Caching & PVs:** `12-model-caching-pvc.md`
+
+Optimize storage and deployment speed with:
+- HostPath Persistent Volumes mapped to NVMe SSDs
+- Shared Hugging Face model caching across replicas
+- Elimination of cold-start latency
+
+**API Gateway Rate Limiting:** `13-api-gateway-rate-limiting.md`
+
+Secure API endpoints against abuse with:
+- NGINX Ingress controller annotations
+- RPS and Connection limits per IP
+- Burst request queuing
+
+**Advanced Topology:** `14-multi-gpu-advanced-topology.md`
+
+Scale to multiple GPUs with complex topologies:
+- Arbitrary Time-Slicing scaling beyond 4 replicas
+- Asymmetric node slicing using labels and profiles
+- Enterprise UI and Grafana management integration
+
 ### For Troubleshooting
 
 - **GPU not visible in pods:** Check `01-infrastructure-setup.md` (Container Toolkit) and `02-gpu-time-slicing-config.md` (Device Plugin)

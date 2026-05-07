@@ -157,6 +157,18 @@ This repository includes comprehensive, production-ready documentation in the `d
 10. **[docs/10-disaster-recovery.md](docs/10-disaster-recovery.md)**  
     Disaster recovery: Velero automated backups to MinIO, RTO/RPO objectives, and complete cluster recovery.
 
+11. **[docs/11-remote-server-deployment.md](docs/11-remote-server-deployment.md)**  
+    Public cloud deployments: Securing rented bare-metal servers, UFW hardening, cert-manager TLS, and Grafana basic authentication.
+
+12. **[docs/12-model-caching-pvc.md](docs/12-model-caching-pvc.md)**  
+    Storage optimization: Shared HostPath PVCs to eliminate model cold-start latency across Time-Sliced replicas.
+
+13. **[docs/13-api-gateway-rate-limiting.md](docs/13-api-gateway-rate-limiting.md)**  
+    API security: NGINX Ingress configuration for strict rate limiting and connection capping to prevent DDoS.
+
+14. **[docs/14-multi-gpu-advanced-topology.md](docs/14-multi-gpu-advanced-topology.md)**  
+    Advanced scaling: Arbitrary Time-Slicing, asymmetric node-level topologies for multi-GPU servers, and enterprise UI management.
+
 ---
 
 ## Prerequisites
