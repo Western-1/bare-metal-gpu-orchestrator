@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gpu-alerting-rules
+  namespace: monitoring
+data:
+  gpu-alerts.yaml: |
+    groups:
+    - name: gpu-time-slicing
+      interval: 30s
+      rules:
+      - alert: HighVRAMUsage
+        expr: (DCGM_FI_DEV_FB_USED{GPU="0"} / DCGM_FI_DEV_FB_TOTAL{GPU="0"}) * 100 > 75
+        for: 5m
+        labels:
+          severity: warning
+          component: gpu
+        annotations:
+          summary: "GPU VRAM usage exceeds 75%"
+          description: "GPU {{ $labels.GPU }} VRAM usage is {{ $value }}%"
+
+      - alert: CriticalVRAMUsage
+        expr: (DCGM_FI_DEV_FB_USED{GPU="0"} / DCGM_FI_DEV_FB_TOTAL{GPU="0"}) * 100 > 90
+        for: 2m
+        labels:
+          severity: critical
+          component: gpu
+        annotations:
+          summary: "GPU VRAM usage exceeds 90%"
+          description: "GPU {{ $labels.GPU }} VRAM usage is {{ $value }}%. Immediate action required."
+
+      - alert: GPUSaturation
+        expr: avg_over_time(DCGM_FI_DEV_GPU_UTIL{GPU="0"}[5m]) > 95
+        for: 10m
+        labels:
+          severity: warning
+          component: gpu
+        annotations:
+          summary: "GPU utilization > 95% for 10 minutes"
+          description: "GPU {{ $labels.GPU }} is saturated at {{ $value }}% utilization"
+
+      - alert: HighGPUTemperature
+        expr: DCGM_FI_DEV_TEMP{GPU="0"} > 85
+        for: 5m
+        labels:
+          severity: warning
+          component: gpu
+        annotations:
+          summary: "GPU temperature exceeds 85°C"
+          description: "GPU {{ $labels.GPU }} temperature is {{ $value }}°C"
+
+      - alert: GPUThrottling
+        expr: DCGM_FI_DEV_CLOCK_THROTTLE_REASON{GPU="0"} > 0
+        for: 1m
+        labels:
+          severity: warning
+          component: gpu
+        annotations:
+          summary: "GPU clock throttling detected"
+          description: "GPU {{ $labels.GPU }} is being throttled. Reason: {{ $value }}"
+
+      - alert: HighPodMemoryUsage
+        expr: container_memory_usage_bytes{namespace="ml-workloads"} / container_spec_memory_limit_bytes{namespace="ml-workloads"} > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          component: pod
+        annotations:
+          summary: "Pod memory usage exceeds 80% of limit"
+          description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is using {{ $value }}% of memory limit"
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: gpu-alerting-rules-prom
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+  - name: gpu-time-slicing
+    interval: 30s
+    rules:
+    - alert: HighVRAMUsage
+      expr: (DCGM_FI_DEV_FB_USED{GPU="0"} / DCGM_FI_DEV_FB_TOTAL{GPU="0"}) * 100 > 75
+      for: 5m
+      labels:
+        severity: warning
+        component: gpu
+      annotations:
+        summary: "GPU VRAM usage exceeds 75%"
+        description: "GPU {{ $labels.GPU }} VRAM usage is {{ $value }}%"

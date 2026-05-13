@@ -1,0 +1,44 @@
+dcgmExporter:
+  enabled: true
+  image:
+    repository: nvidia/dcgm-exporter
+    tag: 3.3.0-3.1.0-ubuntu22.04
+    pullPolicy: IfNotPresent
+  
+  # ServiceMonitor configuration
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+    scrapeTimeout: 10s
+    namespace: monitoring
+    labels:
+      release: kube-prometheus-stack
+  
+  # Resource limits
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  
+  # Security context
+  securityContext:
+    capabilities:
+      add:
+        - SYS_ADMIN
+  
+  # Node selector
+  nodeSelector:
+    kubernetes.io/hostname: gpu-node-1
+  
+  # Tolerations
+  tolerations:
+  - key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule
+  
+  # Extra arguments for metric selection
+  extraArgs:
+    - --families=DCGM_FI_DEV_FB_USED,DCGM_FI_DEV_GPU_UTIL,DCGM_FI_DEV_POWER_USAGE,DCGM_FI_DEV_TEMP,DCGM_FI_DEV_CLOCK_THROTTLE_REASON

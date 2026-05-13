@@ -109,5 +109,19 @@ spec:
 If all 4 pods start at the exact same millisecond on a completely empty cache, they may all try to download the file simultaneously, causing write collisions. 
 To mitigate this, you can:
 - Use an `initContainer` in one specific pod.
-- Pre-download the model directly onto the host path using a setup script.
+- **Pre-download the model directly onto the host path using our setup script.**
 - Rely on Hugging Face's built-in file locking mechanism (supported in `huggingface_hub >= 0.14`).
+
+---
+
+## 4. Local Development (Docker Compose)
+
+For local testing via `make run-local`, we map a local directory (`.cache/models`) directly into the containers.
+To prevent concurrent download issues locally, you should pre-download the models using the provided script before starting the workloads:
+
+```bash
+# Run this once on your local machine
+./scripts/download-models.sh
+```
+
+This script securely downloads the `all-MiniLM-L6-v2` and `resnet18` models into `.cache/models`, which is then mounted via `docker-compose.yaml` to all replicas instantly.

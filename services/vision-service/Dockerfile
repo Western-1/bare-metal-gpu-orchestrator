@@ -9,7 +9,7 @@ COPY main.py .
 RUN useradd -m -u 1000 api_user
 USER api_user
 
-EXPOSE 8000
+EXPOSE 8001
 
 # Start server
 CMD ["python3", "main.py"]

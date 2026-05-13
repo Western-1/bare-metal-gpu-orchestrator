@@ -1,0 +1,10 @@
+[Unit]
+Description=Set NVIDIA GPU Power Limit
+After=multi-user.target
+ConditionPathExists=/dev/nvidia0
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /opt/devops/scripts/apply-power-limit.sh
+[Install]
+WantedBy=multi-user.target

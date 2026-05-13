@@ -1,0 +1,34 @@
+apiVersion: ray.io/v1alpha1
+kind: RayCluster
+metadata:
+  name: ray-cluster
+  namespace: workloads
+spec:
+  rayVersion: '2.9.0'
+  headGroupSpec:
+    rayStartParams:
+      dashboard-host: '0.0.0.0'
+      num-cpus: '2'
+    template:
+      spec:
+        containers:
+        - name: ray-head
+          image: rayproject/ray:2.9.0
+          resources:
+            limits:
+              cpu: "2"
+              memory: "4Gi"
+  workerGroupSpecs:
+  - groupName: gpu-group
+    replicas: 2
+    minReplicas: 0
+    maxReplicas: 4
+    rayStartParams: {}
+    template:
+      spec:
+        containers:
+        - name: ray-worker
+          image: rayproject/ray-ml:2.9.0-gpu
+          resources:
+            limits:
+              nvidia.com/gpu: 1

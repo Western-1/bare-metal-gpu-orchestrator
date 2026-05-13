@@ -19,6 +19,37 @@ kubectl describe node gpu-node-1 | grep "nvidia.com/gpu"
 kubectl get namespaces | grep ml-workloads
 ```
 
+```
+
+---
+
+## Step 0: The Unified Base Image
+
+Before deploying workloads to Kubernetes, you must understand how our Docker images are built. Instead of each microservice installing `torch` separately (which wastes disk space and build time), we use a **Unified Base Image** powered by the ultra-fast `uv` package manager.
+
+```dockerfile
+# services/base/Dockerfile.base
+FROM nvidia/cuda:12.6.0-base-ubuntu22.04
+COPY requirements.txt .
+RUN uv pip install --system --no-cache -r requirements.txt
+```
+
+This base image contains PyTorch (CUDA 12.6), FastAPI, and Transformers. All other microservices simply inherit from it:
+
+```dockerfile
+# services/embedding-service/Dockerfile
+FROM devops-ai-base:latest
+COPY main.py .
+CMD ["python3", "main.py"]
+```
+
+**To build the base image locally:**
+```bash
+make build-base
+# or start the whole local environment:
+make run-local
+```
+
 ---
 
 ## Step 1: Memory Strategy Overview

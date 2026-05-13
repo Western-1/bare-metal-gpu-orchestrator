@@ -113,3 +113,129 @@ spec:
     targetPort: 8000
     name: http
   type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vision-service
+  namespace: ml-workloads
+  labels:
+    app: vision-service
+    workload-type: gpu-inference
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vision-service
+  template:
+    metadata:
+      labels:
+        app: vision-service
+        workload-type: gpu-inference
+    spec:
+      containers:
+      - name: vision-service
+        image: your-registry/vision-service:latest
+        ports:
+        - containerPort: 8001
+          name: http
+          protocol: TCP
+        resources:
+          requests:
+            memory: "2Gi"
+            nvidia.com/gpu: 1
+          limits:
+            memory: "4Gi"
+            nvidia.com/gpu: 1
+        env:
+        - name: CUDA_VISIBLE_DEVICES
+          value: "0"
+        - name: PYTORCH_MEMORY_FRACTION
+          value: "0.20"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vision-service
+  namespace: ml-workloads
+spec:
+  selector:
+    app: vision-service
+  ports:
+  - port: 8001
+    targetPort: 8001
+    name: http
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: background-worker
+  namespace: ml-workloads
+  labels:
+    app: background-worker
+    workload-type: gpu-processing
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: background-worker
+  template:
+    metadata:
+      labels:
+        app: background-worker
+        workload-type: gpu-processing
+    spec:
+      containers:
+      - name: background-worker
+        image: your-registry/background-worker:latest
+        resources:
+          requests:
+            memory: "2Gi"
+            nvidia.com/gpu: 1
+          limits:
+            memory: "4Gi"
+            nvidia.com/gpu: 1
+        env:
+        - name: CUDA_VISIBLE_DEVICES
+          value: "0"
+        - name: PYTORCH_MEMORY_FRACTION
+          value: "0.20"
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}

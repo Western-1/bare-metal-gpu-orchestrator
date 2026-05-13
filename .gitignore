@@ -1,1 +1,11 @@
 .agents/
+.env
+__pycache__/
+.ruff_cache/
+.pytest_cache/
+.cache/
+*.pth
+*.bin
+*.log
+.vscode/
+.idea/

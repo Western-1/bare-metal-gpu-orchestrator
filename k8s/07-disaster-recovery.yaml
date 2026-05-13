@@ -1,0 +1,63 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: ml-workloads-daily
+  namespace: velero
+spec:
+  schedule: "0 */4 * * *"
+  template:
+    includedNamespaces:
+    - ml-workloads
+    storageLocation: default
+    volumeSnapshotLocations:
+    - default
+    ttl: 720h
+    hooks: {}
+---
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: gpu-infrastructure-daily
+  namespace: velero
+spec:
+  schedule: "0 */6 * * *"
+  template:
+    includedNamespaces:
+    - gpu-infrastructure
+    storageLocation: default
+    volumeSnapshotLocations:
+    - default
+    ttl: 720h
+---
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: monitoring-daily
+  namespace: velero
+spec:
+  schedule: "0 */12 * * *"
+  template:
+    includedNamespaces:
+    - monitoring
+    storageLocation: default
+    volumeSnapshotLocations:
+    - default
+    ttl: 720h
+---
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: cluster-resources-daily
+  namespace: velero
+spec:
+  schedule: "0 2 * * *"
+  template:
+    includedResources:
+    - namespaces
+    - persistentvolumes
+    - persistentvolumeclaims
+    - storageclasses
+    - configmaps
+    - secrets
+    storageLocation: default
+    ttl: 720h

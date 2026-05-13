@@ -1,0 +1,61 @@
+{
+  "dashboard": {
+    "title": "GPU Time-Slicing Monitoring",
+    "panels": [
+      {
+        "title": "VRAM Usage (GB)",
+        "targets": [
+          {
+            "expr": "DCGM_FI_DEV_FB_USED{GPU=\"0\"} / 1024^3",
+            "legendFormat": "VRAM Used"
+          },
+          {
+            "expr": "DCGM_FI_DEV_FB_TOTAL{GPU=\"0\"} / 1024^3",
+            "legendFormat": "VRAM Total"
+          }
+        ],
+        "type": "graph"
+      },
+      {
+        "title": "GPU Utilization (%)",
+        "targets": [
+          {
+            "expr": "DCGM_FI_DEV_GPU_UTIL{GPU=\"0\"}",
+            "legendFormat": "GPU Util"
+          }
+        ],
+        "type": "graph"
+      },
+      {
+        "title": "GPU Temperature (°C)",
+        "targets": [
+          {
+            "expr": "DCGM_FI_DEV_TEMP{GPU=\"0\"}",
+            "legendFormat": "Temperature"
+          }
+        ],
+        "type": "graph"
+      },
+      {
+        "title": "Power Usage (W)",
+        "targets": [
+          {
+            "expr": "DCGM_FI_DEV_POWER_USAGE{GPU=\"0\"} / 1000",
+            "legendFormat": "Power"
+          }
+        ],
+        "type": "graph"
+      },
+      {
+        "title": "Pod Memory Usage (GB)",
+        "targets": [
+          {
+            "expr": "container_memory_usage_bytes{namespace=\"ml-workloads\"} / 1024^3",
+            "legendFormat": "{{pod}}"
+          }
+        ],
+        "type": "graph"
+      }
+    ]
+  }
+}

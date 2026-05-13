@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: embedding-service
+  namespace: ml-workloads
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vision-service
+  namespace: ml-workloads
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: background-worker
+  namespace: ml-workloads
+automountServiceAccountToken: false

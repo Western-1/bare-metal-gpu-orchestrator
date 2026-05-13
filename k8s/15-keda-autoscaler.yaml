@@ -1,0 +1,16 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: background-worker-scaler
+  namespace: workloads
+spec:
+  scaleTargetRef:
+    name: background-worker
+  minReplicaCount: 0
+  maxReplicaCount: 4
+  triggers:
+  - type: redis
+    metadata:
+      address: redis-master.redis.svc.cluster.local:6379
+      listName: task_queue
+      listLength: "10"

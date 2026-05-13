@@ -1,276 +1,94 @@
-# GPU Multi-Tenancy on Consumer Hardware: Time-Slicing Architecture
+# Bare-Metal GPU Multi-Tenancy Architecture
 
-![Kubernetes](https://img.shields.io/badge/Kubernetes-v1.29-blue?logo=kubernetes&logoColor=white)
-![NVIDIA](https://img.shields.io/badge/NVIDIA-RTX_5070_Ti-green?logo=nvidia&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-teal?logo=fastapi&logoColor=white)
-![Prometheus](https://img.shields.io/badge/Prometheus-DCGM_Exporter-orange?logo=prometheus&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-yellow)
+This repository contains the infrastructure code for deploying a high-throughput, multi-tenant Machine Learning environment on consumer-grade bare-metal hardware. 
 
-> **Production-ready GPU orchestration architecture enabling multi-tenant ML inference on bare-metal consumer GPUs via software-based Time-Slicing.**
+By leveraging software-based Time-Slicing, we bypass the need for enterprise MIG (Multi-Instance GPU) hardware, allowing a single NVIDIA GPU (e.g., RTX 5070 Ti) to concurrently serve multiple FastAPI applications, PyTorch inferences, and background Celery workers.
 
----
+## Architecture
 
-## Executive Summary
+The system is built on a lightweight k3s cluster utilizing the NVIDIA Device Plugin for temporal GPU slicing.
 
-Consumer-grade NVIDIA GPUs (RTX series) offer exceptional price-to-performance ratios for machine learning workloads but lack hardware-level multi-tenancy features like MIG (Multi-Instance GPU). This creates a fundamental challenge: **GPU underutilization**. A single RTX 5070 Ti (16GB VRAM) typically runs one ML service, leaving the majority of compute resources idle.
+### Core Stack
+* **OS**: Ubuntu 24.04 LTS
+* **Kubernetes**: k3s (Single-node)
+* **Container Runtime**: Docker + NVIDIA Container Toolkit
+* **GPU Allocation**: NVIDIA Device Plugin (configured for 4 logical replicas per physical GPU)
+* **Workloads**: FastAPI, PyTorch, vLLM
+* **Observability**: DCGM Exporter, Prometheus, Grafana, Jaeger
+* **Autoscaling**: KEDA
+* **Distributed Processing**: KubeRay
 
-This project implements a **software-based Time-Slicing architecture** that splits one physical GPU into four logical replicas, enabling concurrent execution of multiple ML workloads (FastAPI + PyTorch services) on a single consumer GPU. The architecture achieves:
+### Resource Isolation Strategy
+Because consumer GPUs lack hardware memory partitioning, this architecture enforces isolation through software:
+1. **PyTorch VRAM Fractioning**: Each pod is restricted to 20% of total VRAM (e.g., 3.2GB on a 16GB card) via `torch.cuda.set_per_process_memory_fraction`.
+2. **Concurrency Limits**: FastAPI endpoints are wrapped in `asyncio.Semaphore` to queue excess requests in system RAM, completely eliminating CUDA Out-of-Memory (OOM) crashes under heavy load.
+3. **Pre-allocation**: Models perform a warmup forward pass on initialization to reserve their VRAM block before receiving traffic.
 
-- **4× GPU utilization** through temporal compute slicing
-- **Zero OOM kills** via PyTorch VRAM fractioning and Kubernetes memory limits
-- **Production-grade observability** with DCGM Exporter, Prometheus, and Grafana
-- **Bare-metal simplicity** using k3s (lightweight Kubernetes) instead of enterprise-grade clusters
+## Documentation Directory
 
-This solution is ideal for edge computing, home labs, and cost-conscious ML teams seeking to maximize GPU ROI without enterprise hardware investments.
+All architectural decisions, configurations, and runbooks are documented in the `docs/` directory. 
 
----
+*Start here:* [docs/00-index.md](docs/00-index.md) provides the complete reading guide and component relationship matrix.
 
-## Key Features
+**Infrastructure & Configuration**
+* [01-infrastructure-setup.md](docs/01-infrastructure-setup.md) - Bare-metal and k3s preparation.
+* [02-gpu-time-slicing-config.md](docs/02-gpu-time-slicing-config.md) - NVIDIA device plugin and ConfigMap setup.
+* [03-workloads-and-memory.md](docs/03-workloads-and-memory.md) - Deploying PyTorch workloads safely.
+* [11-remote-server-deployment.md](docs/11-remote-server-deployment.md) - Public cloud security and UFW configurations.
+* [12-model-caching-pvc.md](docs/12-model-caching-pvc.md) - HostPath PVCs for HuggingFace model caching.
 
-### 🚀 **Zero OOM Architecture**
-- **PyTorch VRAM Fractioning**: Each pod limits VRAM allocation to 20% (3.2GB) via `torch.cuda.set_per_process_memory_fraction`
-- **Kubernetes Memory Limits**: System RAM constrained to 4Gi per pod with 2Gi requests
-- **Model Pre-loading**: Warmup forward pass allocates VRAM on startup, preventing runtime spikes
-- **Strict Isolation**: 7GB VRAM headroom reserved for fragmentation and driver overhead
+**Operations & Security**
+* [04-observability-dcgm.md](docs/04-observability-dcgm.md) - Telemetry, Prometheus, and Grafana.
+* [05-gitops-cicd.md](docs/05-gitops-cicd.md) - ArgoCD and GitHub Actions pipelines.
+* [08-hardware-power-optimization.md](docs/08-hardware-power-optimization.md) - Power capping and GreenOps.
+* [09-security-and-network-isolation.md](docs/09-security-and-network-isolation.md) - NetworkPolicy and zero-trust routing.
+* [10-disaster-recovery.md](docs/10-disaster-recovery.md) - Velero backups to MinIO.
+* [13-api-gateway-rate-limiting.md](docs/13-api-gateway-rate-limiting.md) - Ingress-level traffic control.
 
-### ⚡ **GPU Time-Slicing**
-- **4 Logical Replicas**: Single RTX 5070 Ti presented as `nvidia.com/gpu: 4` to Kubernetes scheduler
-- **10ms Temporal Slices**: Default time-slice duration optimized for inference workloads
-- **1:1 Pod Mapping**: Enforced via `failRequestsGreaterThanOne: true` to prevent over-subscription
-- **Consumer GPU Compatible**: Works on RTX series without MIG hardware support
+**Advanced MLOps**
+* [14-multi-gpu-advanced-topology.md](docs/14-multi-gpu-advanced-topology.md) - Scaling beyond 4 replicas.
+* [15-dynamic-batching-vllm.md](docs/15-dynamic-batching-vllm.md) - vLLM and PagedAttention integration.
+* [16-multi-lora-architecture.md](docs/16-multi-lora-architecture.md) - Serving dynamic LoRA adapters.
+* [17-opentelemetry-tracing.md](docs/17-opentelemetry-tracing.md) - Distributed tracing via Jaeger.
+* [18-mlflow-registry.md](docs/18-mlflow-registry.md) - MLflow registry for tracking artifacts.
+* [19-concurrency-limits.md](docs/19-concurrency-limits.md) - FastAPI semaphores for OOM protection.
+* [20-keda-autoscaling.md](docs/20-keda-autoscaling.md) - Redis queue-based autoscaling for workers.
+* [21-ray-distributed-ml.md](docs/21-ray-distributed-ml.md) - KubeRay clusters for distributed ML tasks.
 
-### 📊 **DCGM Observability**
-- **Real-Time GPU Telemetry**: DCGM Exporter collects VRAM usage, GPU utilization, temperature, and power metrics every 15 seconds
-- **Prometheus Integration**: ServiceMonitor auto-discovery for seamless metric scraping
-- **Grafana Dashboards**: Pre-built NVIDIA GPU dashboard + custom Time-Slicing visualization
-- **Alerting Rules**: Automated alerts for VRAM >75%, GPU saturation >95%, and thermal throttling
+## Local Development
 
-### 🔧 **Bare-Metal Simplicity**
-- **k3s Lightweight Kubernetes**: Single-node cluster with <512MB memory footprint
-- **Docker Runtime**: Native Docker integration with NVIDIA Container Toolkit
-- **No Enterprise Dependencies**: Runs on Ubuntu 24.04 LTS without vCenter, load balancers, or cloud providers
-- **Helm-Based Deployments**: Device Plugin, DCGM Exporter, and kube-prometheus-stack via Helm charts
+If you are developing locally without the full k3s cluster, you can spin up the unified Docker environment. This provisions the Redis queue, embedding API, vision API, and background worker.
 
----
+```bash
+# Build the unified uv base image and start the stack
+make run-local
 
-## Architecture Overview
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Bare-Metal Node (Ubuntu 24.04)               │
-│  AMD Ryzen 7 7800X3D | 32GB RAM | NVIDIA RTX 5070 Ti (16GB)    │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-        ┌─────────────────────┼─────────────────────┐
-        │                     │                     │
-        ▼                     ▼                     ▼
-┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│   k3s v1.29  │    │  Docker v27  │    │ NVIDIA Driver│
-│  (Scheduler) │    │  (Runtime)   │    │    v535+     │
-└──────────────┘    └──────────────┘    └──────────────┘
-        │                     │                     │
-        └─────────────────────┼─────────────────────┘
-                              ▼
-                    ┌──────────────────┐
-                    │ NVIDIA Container │
-                    │      Toolkit     │
-                    └──────────────────┘
-                              │
-        ┌─────────────────────┼─────────────────────┐
-        │                     │                     │
-        ▼                     ▼                     ▼
-┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│  NVIDIA      │    │  Time-Slice  │    │  Workloads   │
-│ Device Plugin│───▶│  ConfigMap   │───▶│  (FastAPI +  │
-│  (DaemonSet) │    │  (4 Replicas)│    │   PyTorch)   │
-└──────────────┘    └──────────────┘    └──────────────┘
-        │                                       │
-        └─────────────────────┬─────────────────┘
-                              ▼
-                    ┌──────────────────┐
-                    │  DCGM Exporter   │
-                    │  (DaemonSet)     │
-                    └──────────────────┘
-                              │
-                              ▼
-                    ┌──────────────────┐
-                    │  Prometheus +    │
-                    │     Grafana      │
-                    └──────────────────┘
+# Run formatting and linting
+make lint
 ```
 
-### Technology Stack
+## Production Deployment
 
-| **Layer** | **Component** | **Version** | **Purpose** |
-|-----------|---------------|-------------|-------------|
-| **OS** | Ubuntu 24.04 LTS | 24.04 | Base operating system |
-| **Container Runtime** | Docker | 27.0+ | Container engine with GPU passthrough |
-| **Kubernetes** | k3s | v1.29+k3s1 | Lightweight single-node cluster |
-| **GPU Virtualization** | NVIDIA Device Plugin | v0.15.0 | Advertises GPU resources to scheduler |
-| **Time-Slicing** | ConfigMap | Custom | Splits 1 GPU into 4 logical replicas |
-| **Workloads** | FastAPI + PyTorch | 0.104+ / 2.1+ | ML inference services |
-| **Observability** | DCGM Exporter | 3.3.0-3.1.0 | GPU telemetry collection |
-| **Metrics** | Prometheus | Latest | Time-series database |
-| **Visualization** | Grafana | Latest | Dashboard and alerting |
-| **Package Manager** | Helm | v3.15+ | Kubernetes package management |
+Ensure your bare-metal node meets the prerequisites (Ubuntu 24.04, Docker, NVIDIA drivers 535+). 
 
----
+Deploy components using the provided Makefile targets:
 
-## Documentation Hub
+```bash
+# 1. Bootstrap node and configure power limits
+make install-infra
 
-This repository includes comprehensive, production-ready documentation in the `docs/` directory. Each document provides step-by-step methodologies, exact bash commands, YAML configurations, and code snippets.
+# 2. Deploy NVIDIA plugin and time-slicing maps
+make deploy-gpu-slice
 
-### 📚 **Start Here: Documentation Index**
+# 3. Deploy monitoring stack (DCGM, Prometheus, Grafana)
+make monitoring
 
-**[docs/00-index.md](docs/00-index.md)** — Central hub with relationship matrix, Mermaid.js architecture diagrams, and reading guide for new engineers.
+# 4. Deploy standard workloads
+make run-workloads
 
-### 🔧 **Implementation Guides**
-
-1. **[docs/01-infrastructure-setup.md](docs/01-infrastructure-setup.md)**  
-   Bare-metal node preparation: NVIDIA driver installation, Docker runtime, NVIDIA Container Toolkit, k3s deployment with Docker runtime, and verification steps.
-
-2. **[docs/02-gpu-time-slicing-config.md](docs/02-gpu-time-slicing-config.md)**  
-   GPU virtualization configuration: NVIDIA Device Plugin deployment via Helm, Time-Slicing ConfigMap creation, scheduler verification, and multi-pod concurrency testing.
-
-3. **[docs/03-workloads-and-memory.md](docs/03-workloads-and-memory.md)**  
-   ML workload deployment: Kubernetes Deployment templates with GPU requests, PyTorch memory fractioning code, FastAPI service configuration, and OOM prevention strategies.
-
-4. **[docs/04-observability-dcgm.md](docs/04-observability-dcgm.md)**  
-   Observability stack: DCGM Exporter deployment, Prometheus and Grafana setup via Helm, critical PromQL queries for GPU monitoring, and alerting rule configuration.
-
-5. **[docs/05-gitops-cicd.md](docs/05-gitops-cicd.md)**  
-   GitOps and CI/CD: Automated container image builds, security scanning with GitHub Actions, and ArgoCD deployment pipeline.
-
-6. **[docs/06-finops-roi-analysis.md](docs/06-finops-roi-analysis.md)**  
-   Financial analysis: Cloud vs. bare-metal cost comparison, ROI calculations, and carbon footprint metrics.
-
-7. **[docs/07-performance-benchmarks.md](docs/07-performance-benchmarks.md)**  
-   Performance testing: Locust load testing for APIs, performance metrics, and capacity planning.
-
-8. **[docs/08-hardware-power-optimization.md](docs/08-hardware-power-optimization.md)**  
-   Power optimization: GreenOps practices, NVIDIA power capping, thermal target configuration, and energy savings.
-
-9. **[docs/09-security-and-network-isolation.md](docs/09-security-and-network-isolation.md)**  
-   Security hardening: Kubernetes NetworkPolicy for zero-trust isolation, RBAC, and pod security standards.
-
-10. **[docs/10-disaster-recovery.md](docs/10-disaster-recovery.md)**  
-    Disaster recovery: Velero automated backups to MinIO, RTO/RPO objectives, and complete cluster recovery.
-
-11. **[docs/11-remote-server-deployment.md](docs/11-remote-server-deployment.md)**  
-    Public cloud deployments: Securing rented bare-metal servers, UFW hardening, cert-manager TLS, and Grafana basic authentication.
-
-12. **[docs/12-model-caching-pvc.md](docs/12-model-caching-pvc.md)**  
-    Storage optimization: Shared HostPath PVCs to eliminate model cold-start latency across Time-Sliced replicas.
-
-13. **[docs/13-api-gateway-rate-limiting.md](docs/13-api-gateway-rate-limiting.md)**  
-    API security: NGINX Ingress configuration for strict rate limiting and connection capping to prevent DDoS.
-
-14. **[docs/14-multi-gpu-advanced-topology.md](docs/14-multi-gpu-advanced-topology.md)**  
-    Advanced scaling: Arbitrary Time-Slicing, asymmetric node-level topologies for multi-GPU servers, and enterprise UI management.
-
----
-
-## Prerequisites
-
-### Hardware Requirements
-
-| **Component** | **Minimum** | **Recommended** | **Notes** |
-|--------------|-------------|-----------------|-----------|
-| **CPU** | 8 cores | 16 cores (AMD Ryzen 7 7800X3D) | For concurrent pod execution |
-| **RAM** | 16GB | 32GB | System RAM for Kubernetes and workloads |
-| **GPU** | NVIDIA RTX 3060 (12GB) | NVIDIA RTX 5070 Ti (16GB) | Consumer GPU without MIG support |
-| **Storage** | 100GB SSD | 500GB NVMe SSD | For container images and logs |
-
-### Software Requirements
-
-- **Operating System**: Ubuntu 24.04 LTS (fresh installation recommended)
-- **NVIDIA Driver**: Version 535+ (supports CUDA 12.x)
-- **Internet Access**: Required for Helm chart downloads and container image pulls
-- **User Privileges**: sudo access for system-level installations
-
-### Supported GPU Models
-
-This architecture is tested and verified on:
-- ✅ NVIDIA RTX 5070 Ti (16GB)
-- ✅ NVIDIA RTX 4090 (24GB)
-- ✅ NVIDIA RTX 3090 (24GB)
-- ✅ NVIDIA RTX 3060 (12GB)
-
-*Other RTX series GPUs with 12GB+ VRAM should work but may require memory fraction adjustments.*
-
----
-
-## Quick Start
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd devops
-   ```
-
-2. **Read the documentation index**
-   ```bash
-   # Start here for architecture overview and reading guide
-   cat docs/00-index.md
-   ```
-
-3. **Follow the implementation guides in order**
-   ```bash
-   # Step 1: Infrastructure setup
-   # Follow docs/01-infrastructure-setup.md
-   
-   # Step 2: GPU Time-Slicing configuration
-   # Follow docs/02-gpu-time-slicing-config.md
-   
-   # Step 3: Workload deployment
-   # Follow docs/03-workloads-and-memory.md
-   
-   # Step 4: Observability setup
-   # Follow docs/04-observability-dcgm.md
-   ```
-
----
-
-## Project Status
-
-- ✅ **Infrastructure Setup**: Complete and verified
-- ✅ **GPU Time-Slicing**: Configured with 4 logical replicas
-- ✅ **Workload Deployment**: FastAPI + PyTorch services with memory management
-- ✅ **Observability**: DCGM Exporter + Prometheus + Grafana operational
-- ✅ **Documentation**: Comprehensive, production-ready guides
-
----
-
-## Contributing
-
-This is a reference architecture for GPU multi-tenancy on consumer hardware. Contributions are welcome in the form of:
-- Documentation improvements
-- Additional GPU model compatibility testing
-- Performance benchmarking data
-- Alternative workload examples (e.g., TensorFlow, JAX)
-
----
+# 5. (Optional) Deploy advanced MLOps features
+make deploy-advanced
+```
 
 ## License
-
-MIT License — See LICENSE file for details.
-
----
-
-## Acknowledgments
-
-- **NVIDIA** for the Device Plugin and DCGM Exporter projects
-- **k3s** project for lightweight Kubernetes
-- **Prometheus** and **Grafana** communities for observability tooling
-- **FastAPI** and **PyTorch** teams for exceptional ML frameworks
-
----
-
-## Contact
-
-For questions or discussions about this architecture, please open an issue in the repository.
-
----
-
-**Built with ❤️ for the MLOps community — Maximizing GPU ROI on consumer hardware.**
+MIT License. See LICENSE for details.

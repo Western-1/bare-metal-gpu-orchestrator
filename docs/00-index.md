@@ -24,6 +24,10 @@
 | **Grafana** | `04-observability-dcgm.md` | Prometheus | Visualization dashboard for GPU metrics |
 | **GitHub Actions CI** | `05-gitops-cicd.md` | Workloads, Container Registry | Automated container image builds and security scanning |
 | **ArgoCD** | `05-gitops-cicd.md` | k3s, GitHub Actions | GitOps-based deployment and self-healing |
+| **KEDA Autoscaler** | `20-keda-autoscaling.md` | Redis, Workloads | Event-driven autoscaling for background tasks |
+| **KubeRay** | `21-ray-distributed-ml.md` | k3s | Distributed ML task processing |
+| **OpenTelemetry/Jaeger** | `17-opentelemetry-tracing.md` | Workloads | Distributed request tracing |
+| **MLflow Registry** | `18-mlflow-registry.md` | k3s | Model registry and LoRA adapter management |
 | **FinOps Analysis** | `06-finops-roi-analysis.md` | All Components | Cost-benefit analysis and ROI calculations |
 | **Locust Load Testing** | `07-performance-benchmarks.md` | Workloads | Performance benchmarking and capacity planning |
 | **Power Management** | `08-hardware-power-optimization.md` | GPU, DCGM | GreenOps power capping and thermal optimization |
@@ -251,6 +255,31 @@ Scale to multiple GPUs with complex topologies:
 - Arbitrary Time-Slicing scaling beyond 4 replicas
 - Asymmetric node slicing using labels and profiles
 - Enterprise UI and Grafana management integration
+
+### 🚀 Next-Gen MLOps (Enterprise Features)
+
+**Dynamic Batching:** `15-dynamic-batching-vllm.md`
+- Maximize throughput with vLLM and PagedAttention
+- Solve concurrent request bottlenecks
+
+**Multi-LoRA Serving:** `16-multi-lora-architecture.md`
+- Serve 50+ clients on one GPU slice
+- Dynamic adapter routing instead of full models
+
+**OpenTelemetry Tracing:** `17-opentelemetry-tracing.md`
+- Distributed tracing with Jaeger
+
+**MLflow Registry:** `18-mlflow-registry.md`
+- Model versioning and artifact tracking
+
+**Concurrency Limits:** `19-concurrency-limits.md`
+- FastAPI asyncio.Semaphore for OOM protection
+
+**Event-Driven Autoscaling:** `20-keda-autoscaling.md`
+- KEDA integration for Redis queue scaling
+
+**Distributed ML Processing:** `21-ray-distributed-ml.md`
+- KubeRay setup for distributed Python tasks
 
 ### For Troubleshooting
 

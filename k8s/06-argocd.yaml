@@ -1,0 +1,116 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gpu-infrastructure
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/your-username/gpu-orchestration.git
+    targetRevision: main
+    path: k8s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: gpu-infrastructure
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-image-updater-config
+  namespace: argocd
+data:
+  log.level: debug
+  argocd.server.address: argocd-server.argocd.svc
+  argocd.server.insecure: "true"
+  registries: |
+    - name: GitHub Container Registry
+      api_url: https://ghcr.io
+      ping_url: https://ghcr.io/v2/
+      credentials: pullsecret:ghcr-creds
+  prefix: ghcr.io/your-username
+  applications: |
+    - name: ml-workloads
+      images:
+      - image_name: ghcr.io/your-username/embedding-service
+        update_strategy: latest
+      - image_name: ghcr.io/your-username/vision-service
+        update_strategy: latest
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-notifications-cm
+  namespace: argocd
+data:
+  context: |
+    argocdUrl: http://argocd-server.argocd.svc
+  service.slack: |
+    token: $slack-token
+  subscriptions: |
+    - recipients:
+      - slack:test-channel
+      triggers:
+      - on-sync-succeeded
+      - on-sync-failed
+      - on-sync-status-unknown
+  template.app-sync-succeeded.slack: |
+    message: |
+      Application {{.app.metadata.name}} sync succeeded
+      {{if .app.operation}} initiated by {{.app.operation.initiatedBy.username}}{{end}}
+    slack:
+      attachments: |
+        [{
+          "title": "{{ .app.metadata.name}}",
+          "color": "#18be52",
+          "fields": [
+            {
+              "title": "Sync Status",
+              "value": "{{ .app.status.sync.status }}",
+              "short": true
+            },
+            {
+              "title": "Repository",
+              "value": "{{ .app.spec.source.repoURL }}",
+              "short": true
+            }
+          ]
+        }]
+  template.app-sync-failed.slack: |
+    message: |
+      Application {{.app.metadata.name}} sync failed
+      {{if .app.operation}} initiated by {{.app.operation.initiatedBy.username}}{{end}}
+    slack:
+      attachments: |
+        [{
+          "title": "{{ .app.metadata.name }}",
+          "color": "#ff0000",
+          "fields": [
+            {
+              "title": "Sync Status",
+              "value": "{{ .app.status.sync.status }}",
+              "short": true
+            },
+            {
+              "title": "Error",
+              "value": "{{ .app.status.sync.operationState.message }}",
+              "short": false
+            }
+          ]
+        }]

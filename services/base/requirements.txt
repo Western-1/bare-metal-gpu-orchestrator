@@ -1,0 +1,11 @@
+--extra-index-url https://download.pytorch.org/whl/cu132
+numpy<2
+torch
+torchvision
+transformers
+sentence-transformers
+fastapi
+uvicorn
+pydantic
+python-multipart
+Pillow

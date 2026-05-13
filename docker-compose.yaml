@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  embedding-service:
+    build:
+      context: ./services/embedding-service
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      # Prevents OOM by limiting concurrent PyTorch forward passes
+      - MAX_CONCURRENT_REQUESTS=4
+    volumes:
+      - ./.cache/models:/root/.cache/huggingface
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+
+  vision-service:
+    build:
+      context: ./services/vision-service
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      # Prevents OOM by limiting concurrent PyTorch forward passes
+      - MAX_CONCURRENT_REQUESTS=4
+    volumes:
+      - ./.cache/models:/root/.cache/huggingface
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+
+  background-worker:
+    build:
+      context: ./services/background-worker
+      dockerfile: Dockerfile
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./.cache/models:/root/.cache/huggingface
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
