@@ -1,22 +1,30 @@
-# 12. Model Caching and Shared Volumes
+# Model Caching and Shared Volumes
 
-In a Time-Sliced architecture, you may have 4 or more pod replicas of the same service (e.g., an embedding API) running concurrently on the same physical node.
-
-If each pod downloads its multi-GB Hugging Face model on startup, you will experience:
-- Severe cold-start latency (taking minutes to become ready).
-- Wasted network bandwidth.
-- Unnecessary disk space consumption (4 replicas downloading a 5GB model consumes 20GB of local storage).
-
-To solve this, we use a shared `HostPath` Persistent Volume (PV) to mount a local SSD directory directly into the pods. The model is downloaded once and instantly shared across all replicas.
+**Component:** PersistentVolumeClaims (PVC) and HostPath Storage  
+**Objective:** Eliminate redundant multi-gigabyte model downloads and prevent OOM spikes  
+**Storage Class:** local-path  
 
 ---
 
-## 1. Create the Host Directory
+## 1. Storage Architecture Overview
 
-First, create a directory on the bare-metal host's fast NVMe SSD where models will be cached. Ensure the permissions allow pods to read/write.
+In a Time-Sliced architecture with multiple concurrent replicas (e.g., 4 pods of an embedding API), initializing containers simultaneously triggers redundant downloads of identical model weights (e.g., Hugging Face `.safetensors`).
+
+**Impact of Redundant Downloads:**
+- Network bandwidth saturation.
+- Severe cold-start latency (pulling 5GB+ per pod).
+- Wasted disk utilization (4 replicas × 5GB = 20GB local storage).
+
+**Solution:** Implement a shared `HostPath` Persistent Volume (PV). A single cache directory on the host's NVMe SSD is mounted across all replicas with `ReadWriteMany` (RWX) permissions.
+
+---
+
+## 2. Host Storage Configuration
+
+Provision the physical directory on the bare-metal host:
 
 ```bash
-# Run on the bare-metal host
+# Execute on the k3s node
 sudo mkdir -p /mnt/nvme/huggingface-cache
 sudo chown -R 1000:1000 /mnt/nvme/huggingface-cache
 sudo chmod -R 775 /mnt/nvme/huggingface-cache
@@ -24,9 +32,9 @@ sudo chmod -R 775 /mnt/nvme/huggingface-cache
 
 ---
 
-## 2. Define the Persistent Volume (PV) and Claim (PVC)
+## 3. Kubernetes Storage Manifests
 
-Create a Kubernetes `PersistentVolume` mapping to the host path, and a `PersistentVolumeClaim` that our workloads can bind to. Since we want all pods to read/write from this cache, we use `ReadWriteMany`.
+Define the `PersistentVolume` and `PersistentVolumeClaim` to abstract the host path:
 
 ```yaml
 # manifests/storage/hf-cache-pv-pvc.yaml
@@ -60,16 +68,15 @@ spec:
       storage: 50Gi
 ```
 
-Apply the storage resources:
 ```bash
 kubectl apply -f manifests/storage/hf-cache-pv-pvc.yaml
 ```
 
 ---
 
-## 3. Mount the Cache into the Workload
+## 4. Workload Mount Configuration
 
-Modify your FastAPI deployments to mount this PVC into the container's Hugging Face cache directory (`/root/.cache/huggingface` by default, or overridden by `HF_HOME`).
+Inject the PVC into workload manifests and override the default Hugging Face cache directory via `HF_HOME`.
 
 ```yaml
 # manifests/workloads/embedding-api.yaml (Excerpt)
@@ -86,7 +93,6 @@ spec:
       - name: api
         image: my-registry/embedding-api:v1.0
         env:
-        # Explicitly define the Hugging Face cache directory
         - name: HF_HOME
           value: "/app/models-cache"
         volumeMounts:
@@ -98,30 +104,29 @@ spec:
           claimName: hf-cache-pvc
 ```
 
-### How It Works in Practice
+### Concurrency and Lock Management
 
-1. **Pod 1 starts:** Checks `/app/models-cache`. The model isn't there, so it downloads it from Hugging Face into the mounted HostPath volume.
-2. **Pods 2, 3, and 4 start (concurrently or later):** They check `/app/models-cache`. The model is already present. They instantly load the model into VRAM (or their memory fraction).
-3. **Result:** Cold start goes from minutes to seconds, and 15GB of disk space is saved.
+When multiple pods initiate simultaneously on a cold cache, write collisions may occur.
+`huggingface_hub >= 0.14` supports native file locking. To guarantee collision avoidance, execute an out-of-band pre-fetch:
 
-### Warning on Concurrent Downloads
-
-If all 4 pods start at the exact same millisecond on a completely empty cache, they may all try to download the file simultaneously, causing write collisions. 
-To mitigate this, you can:
-- Use an `initContainer` in one specific pod.
-- **Pre-download the model directly onto the host path using our setup script.**
-- Rely on Hugging Face's built-in file locking mechanism (supported in `huggingface_hub >= 0.14`).
+```bash
+# Pre-warm the cache directory on the host prior to deployment
+HF_HOME=/mnt/nvme/huggingface-cache huggingface-cli download sentence-transformers/all-MiniLM-L6-v2
+```
 
 ---
 
-## 4. Local Development (Docker Compose)
+## 5. Local Development (Docker Compose)
 
-For local testing via `make run-local`, we map a local directory (`.cache/models`) directly into the containers.
-To prevent concurrent download issues locally, you should pre-download the models using the provided script before starting the workloads:
+For local environments utilizing `make run-local`, map `.cache/models` directly to the containers. 
+Execute the pre-download script to populate the local cache prior to container initialization:
 
 ```bash
-# Run this once on your local machine
 ./scripts/download-models.sh
 ```
 
-This script securely downloads the `all-MiniLM-L6-v2` and `resnet18` models into `.cache/models`, which is then mounted via `docker-compose.yaml` to all replicas instantly.
+---
+
+## Next Steps
+
+Proceed to `13-api-gateway-rate-limiting.md` to configure ingress load balancing and strict rate-limiting topologies.

@@ -1,23 +1,25 @@
-# 21. Distributed ML Processing (KubeRay)
+# Distributed ML Processing (KubeRay)
 
-For standard inference (like generating a text embedding), a single Time-Sliced GPU partition is sufficient. However, for massive ML workloads—like fine-tuning a Large Language Model (LLM) or processing a 100-gigabyte dataset—a single GPU partition, or even a single full GPU, is not enough.
-
-To solve this, we use **Ray** (specifically **KubeRay** for Kubernetes).
+**Component:** Ray & KubeRay Operator  
+**Objective:** Distributed execution for heavy ML workloads (e.g., distributed training, batch inference)  
+**Architecture:** Master/Worker Topology with GPU fractional allocation  
 
 ---
 
-## 1. What is Ray?
+## 1. Architectural Justification
 
-Ray is a framework for scaling AI and Python applications. It allows you to write Python code once and execute it seamlessly across hundreds of machines and GPUs in a cluster. 
+While Time-Slicing efficiently handles low-latency asynchronous/synchronous inference endpoints, heavy compute tasks (e.g., LLM fine-tuning, 100GB batch vectorization) exceed the boundary of a single node or a fractional GPU slice.
 
-By deploying KubeRay, we transform our Kubernetes cluster into a massive, unified supercomputer for Data Scientists.
+To orchestrate distributed compute horizontally, the architecture leverages **Ray** via the **KubeRay** Kubernetes Operator, converting the cluster into a unified execution pool for Data Science workloads.
 
-## 2. The KubeRay Deployment
+---
 
-We deploy the Ray Operator and a `RayCluster` Custom Resource Definition (CRD).
+## 2. KubeRay Deployment Configuration
+
+The repository deploys the KubeRay Operator alongside a specific `RayCluster` CRD.
 
 ```yaml
-# k8s/16-ray-cluster.yaml (Excerpt)
+# manifests/workloads/ray-cluster.yaml (Excerpt)
 apiVersion: ray.io/v1
 kind: RayCluster
 metadata:
@@ -48,22 +50,30 @@ spec:
               nvidia.com/gpu: 1
 ```
 
-## 3. How It Works in Practice
+---
 
-1. **The Head Node**: The Ray Head node acts as the master scheduler. It doesn't perform heavy ML work; it just orchestrates tasks.
-2. **The Worker Nodes**: We deploy multiple Ray Worker pods. Because our cluster uses GPU Time-Slicing, these workers can be packed tightly onto our physical GPUs.
-3. **Task Distribution**: A Data Scientist submits a training script to the Head node. Ray automatically breaks the dataset into chunks, sends the chunks to the Worker pods, executes the training in parallel across multiple GPU slices, and aggregates the results back.
+## 3. Distributed Execution Mechanics
 
-## 4. Submitting a Ray Job
+1. **Head Node (Control Plane):** The Ray Head Node operates strictly as a metadata scheduler and cluster manager. It does not execute tensor operations or consume GPU limits.
+2. **Worker Nodes (Data Plane):** The `gpu-workers` replica set provisions execution pods. Leveraging the underlying Time-Slicing Device Plugin, these pods schedule densely onto the physical bare-metal hardware.
+3. **Execution Routing:** Python scripts submitted to the Head node are automatically serialized. The Ray scheduler partitions the dataset, distributes object references, executes tensor operations in parallel across the Time-Sliced worker pool, and aggregates the distributed object store results.
 
-To submit a Python script to the Ray cluster:
+---
+
+## 4. Job Submission Protocol
+
+Expose the Ray Dashboard and Ray Client API port to submit localized training scripts to the remote cluster:
 
 ```bash
-# Port-forward the Ray Dashboard and API
+# 1. Establish API tunnel
 kubectl port-forward svc/devops-ray-cluster-head-svc 8265:8265 -n workloads
 
-# Submit the job
-ray job submit --address="http://localhost:8265" --working-dir ./scripts -- python train_distributed.py
+# 2. Submit remote job via Ray CLI
+ray job submit \
+  --address="http://localhost:8265" \
+  --working-dir ./scripts \
+  -- python train_distributed.py
 ```
 
-You can view the progress, resource utilization, and logs of your distributed job by opening the Ray Dashboard at `http://localhost:8265`.
+**Telemetry:** 
+Monitor actor distribution, cluster utilization, and worker node health natively via the Ray Dashboard at `http://localhost:8265`.

@@ -1,26 +1,28 @@
-# 20. Event-Driven Autoscaling (KEDA)
+# Event-Driven Autoscaling (KEDA)
 
-While Time-Slicing allows us to pack multiple pods onto a single GPU, we still need a way to automatically scale the number of pods up or down based on actual workload demand, rather than static CPU/Memory metrics.
-
-To achieve this, we use **KEDA (Kubernetes Event-driven Autoscaling)**.
+**Component:** Kubernetes Event-driven Autoscaling (KEDA)  
+**Objective:** Dynamic Time-Slice workload provisioning via external metric triggers  
+**Trigger Source:** Redis Queue Depth  
 
 ---
 
-## 1. Why KEDA?
+## 1. Architectural Justification
 
-Standard Kubernetes Horizontal Pod Autoscaler (HPA) typically scales based on CPU or Memory utilization. However, for ML workloads:
-- GPU memory is statically allocated (e.g. our 3.2GB slices) and doesn't fluctuate like RAM.
-- GPU Compute (CUDA cores) utilization is hard for standard HPA to track accurately.
-- Background tasks (like our `background-worker`) process queues in Redis. The best indicator of load is the **length of the queue**, not the CPU usage.
+Standard Kubernetes Horizontal Pod Autoscalers (HPA) rely fundamentally on continuous CPU/Memory telemetry. For GPU-bound ML inference workloads:
+- GPU VRAM reservations are statically bounded (e.g., rigid 3.2GB slices) and do not linearly correlate with ingress volume.
+- Standard HPA controllers lack native integration with CUDA SM utilization metrics.
+- Asynchronous pipeline load (e.g., `background-worker` processing) is best measured via broker queue depth, an external metric invisible to native HPAs.
 
-KEDA solves this by scaling pods based on external metrics, such as the length of a Redis list.
+**KEDA** bridges this gap by extending the Kubernetes metrics server, allowing deployments to autoscale based directly on state representations from external brokers (e.g., Redis List Lengths).
 
-## 2. The Configuration
+---
 
-In our deployment, KEDA is configured to monitor the Redis queue length for background ML tasks.
+## 2. KEDA ScaledObject Configuration
+
+The infrastructure leverages a `ScaledObject` CRD to map the `background-worker` deployment target to a specific Redis list depth threshold.
 
 ```yaml
-# k8s/15-keda-autoscaler.yaml (Excerpt)
+# manifests/workloads/keda-autoscaler.yaml (Excerpt)
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
@@ -36,13 +38,24 @@ spec:
     metadata:
       address: redis-master.workloads.svc.cluster.local:6379
       listName: ml_task_queue
-      listLength: "50" # Scale up if queue has more than 50 items
+      listLength: "50" 
 ```
 
-## 3. How It Operates
+### Trigger Mechanics
+- **Metric Mapping:** `listLength: "50"` dictates that KEDA provisions 1 replica per 50 pending queue items.
 
-1. **Idle State**: If the `ml_task_queue` in Redis is empty, KEDA scales the `background-worker` deployment down to `minReplicaCount` (1).
-2. **Traffic Spike**: A user submits 500 video generation requests. They land in the Redis queue instantly.
-3. **Scaling Action**: KEDA detects the queue length is 500 (which is > 50). It instructs Kubernetes to spin up more `background-worker` pods, up to the `maxReplicaCount` (10).
-4. **Distribution**: These new pods land on available GPU slices across the cluster. The tasks are processed 10x faster.
-5. **Scale Down**: Once the queue is depleted, KEDA gracefully scales the workers back down to 1, freeing up GPU slices for other services like `vision-service` or `embedding-service`.
+---
+
+## 3. Operational Lifecycle
+
+1. **Idle State:** When the Redis list `ml_task_queue` contains zero elements, KEDA aggressively scales the deployment down to the `minReplicaCount` (`1`), liberating fractional GPU compute for synchronous HTTP services (e.g., `embedding-service`).
+2. **Ingress Spike:** An external system enqueues 500 asynchronous generation payloads to Redis.
+3. **Scale Out:** KEDA's polling loop observes a depth of 500. Calculating against the `50` target length, the controller immediately instructs the Kubernetes scheduler to provision up to `maxReplicaCount` (`10`).
+4. **Saturation:** Ten worker pods acquire available Time-Slices across the node pool and drain the queue in parallel.
+5. **Scale In:** As the list length falls, KEDA executes a controlled downscale, reclaiming VRAM partitions.
+
+---
+
+## Next Steps
+
+Proceed to `21-ray-distributed-ml.md` to configure the KubeRay operator for distributed multi-node inference topologies.

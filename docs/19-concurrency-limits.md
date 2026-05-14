@@ -1,51 +1,59 @@
-# 19. Concurrency Limits (OOM Protection)
+# Concurrency Limits (OOM Protection)
 
-In an environment where a single PyTorch model runs on a constrained VRAM partition (e.g., 3.2 GB in a GPU Time-Slicing scenario), exposing an endpoint to unrestricted HTTP traffic guarantees an Out Of Memory (OOM) crash during traffic spikes. 
-
-While message queues (like Redis) are perfect for background tasks, they add unacceptable latency for synchronous REST APIs where users expect sub-second responses.
-
-To solve this for synchronous APIs, we use **Concurrency Limits via Semaphores**.
+**Component:** Application-Layer Concurrency Control  
+**Objective:** Prevent PyTorch CUDA OOM errors under synchronous load  
+**Mechanism:** `asyncio.Semaphore`  
 
 ---
 
-## How It Works
+## 1. Synchronous Inference Bottleneck
 
-Instead of letting FastAPI flood the GPU with every incoming request concurrently, we place an `asyncio.Semaphore` immediately before the PyTorch `forward()` or `encode()` execution block.
+Executing PyTorch models within a strictly partitioned VRAM context (e.g., a 3.2 GB Time-Sliced boundary) dictates a hard ceiling on concurrent inference execution. Exposing the API to unthrottled HTTP traffic guarantees a rapid Out Of Memory (OOM) fault during ingress spikes.
 
-1. **The Gatekeeper**: The semaphore is initialized with a strict limit (e.g., 4).
-2. **Waiting in RAM**: If 50 requests arrive instantly, the first 4 enter the GPU. The remaining 46 are paused by the `async with semaphore:` block. 
-3. **Safe Queuing**: The paused requests wait safely in the server's main system RAM (which is abundant) without touching the precious GPU VRAM.
-4. **Execution**: As soon as 1 request finishes and exits the `async with` block, the next request is instantly pushed to the GPU.
+While message brokers (e.g., Redis/Celery) mitigate this for asynchronous background jobs, they introduce unacceptable queuing latency for synchronous REST APIs requiring sub-second SLAs.
 
 ---
 
-## Configuration
+## 2. Semaphore Implementation Strategy
 
-In this project, the concurrency limit is easily configurable via the `MAX_CONCURRENT_REQUESTS` environment variable.
+To protect the CUDA execution graph without sacrificing synchronous latency, we implement application-layer concurrency control using `asyncio.Semaphore`.
 
-### Modifying Locally (Docker Compose)
-Edit the environment block in `docker-compose.yaml`:
+**Execution Flow:**
+1. **Initialization:** The semaphore instantiates with a strict concurrency ceiling (e.g., `4`).
+2. **Ingress:** If 50 concurrent requests hit the FastAPI router, 4 acquire the lock and dispatch to the GPU.
+3. **RAM Queuing:** The remaining 46 requests yield at the `async with semaphore:` block, queuing safely in abundant system RAM without allocating VRAM tensors.
+4. **Release:** Upon completion of a GPU forward pass, the lock is released, immediately admitting the next queued request in a FIFO pattern.
+
+---
+
+## 3. Configuration Management
+
+Concurrency ceilings are exposed dynamically via the `MAX_CONCURRENT_REQUESTS` environment variable to allow runtime tuning.
+
+### Container Environment Mapping
+
+Inject the variable into the deployment spec:
 
 ```yaml
-  embedding-service:
-    environment:
-      - REDIS_URL=redis://redis:6379/0
-      - MAX_CONCURRENT_REQUESTS=8   # Adjust based on memory profiling
-```
-
-### Modifying in Kubernetes
-For production, adjust the `env` array in your `Deployment` manifests:
-
-```yaml
+# manifests/workloads/embedding-api.yaml
         env:
         - name: MAX_CONCURRENT_REQUESTS
-          value: "16"
+          value: "16" # Must be calibrated via load testing
 ```
 
-## Determining the Optimal Limit
+---
 
-The ideal number depends on your batch size, model size, and memory fraction.
-To find it:
-1. Run a load test (e.g., Locust).
-2. Monitor VRAM usage (which is returned in the API response under `memory_stats`).
-3. Gradually increase `MAX_CONCURRENT_REQUESTS` until VRAM hits ~80%. This is your maximum safe concurrency.
+## 4. Calibration Methodology
+
+The maximum safe concurrency is a function of static model weights, dynamic KV cache growth, and the hard VRAM partition limit. 
+
+**Tuning Protocol:**
+1. Execute a sustained Locust load test (reference `07-performance-benchmarks.md`).
+2. Monitor VRAM telemetry via DCGM exporter or the internal `/health` endpoint (`memory_stats`).
+3. Iteratively increment `MAX_CONCURRENT_REQUESTS` until peak VRAM utilization stabilizes at ~85-90% under sustained load. Exceeding 90% introduces severe risk of fragmentation-induced OOMs.
+
+---
+
+## Next Steps
+
+Proceed to `20-keda-autoscaling.md` to configure Kubernetes Event-Driven Autoscaling based on Redis queue depths.

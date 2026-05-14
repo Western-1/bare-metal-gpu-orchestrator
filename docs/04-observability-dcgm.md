@@ -678,7 +678,7 @@ kubectl apply -f prometheus-rule-gpu.yaml
 
 ## Verification Checklist
 
-### ✅ DCGM Exporter Verification
+### DCGM Exporter Verification
 
 ```bash
 # 1. DCGM Exporter DaemonSet is running
@@ -696,7 +696,7 @@ pkill -f "port-forward"
 # Expected: Metric values present
 ```
 
-### ✅ Prometheus Verification
+### Prometheus Verification
 
 ```bash
 # 4. Prometheus is scraping DCGM metrics
@@ -710,7 +710,7 @@ kubectl get servicemonitor -n monitoring dcgm-exporter
 # Expected: ServiceMonitor exists
 ```
 
-### ✅ Grafana Verification
+### Grafana Verification
 
 ```bash
 # 6. Grafana is accessible
@@ -721,7 +721,7 @@ kubectl get svc -n monitoring kube-prometheus-stack-grafana
 # Access http://<node-ip>:30030 and verify dashboard displays data
 ```
 
-### ✅ Alerting Verification
+### Alerting Verification
 
 ```bash
 # 8. PrometheusRule is created
@@ -865,10 +865,10 @@ With observability configured, you now have:
 - **Alerting rules** notifying on high VRAM usage, GPU saturation, and thermal issues
 
 This completes the core GPU Time-Slicing architecture. All foundational components are now operational:
-1. ✅ Infrastructure (k3s + Docker + NVIDIA Container Toolkit)
-2. ✅ GPU Time-Slicing (Device Plugin + ConfigMap)
-3. ✅ Workloads (FastAPI + PyTorch with memory management)
-4. ✅ Observability (DCGM + Prometheus + Grafana)
+1. Infrastructure (k3s + Docker + NVIDIA Container Toolkit)
+2. GPU Time-Slicing (Device Plugin + ConfigMap)
+3. Workloads (FastAPI + PyTorch with memory management)
+4. Observability (DCGM + Prometheus + Grafana)
 
 For production readiness and advanced operations, proceed to:
 - **GitOps and CI/CD** (`05-gitops-cicd.md`) — Automated deployments with GitHub Actions and ArgoCD

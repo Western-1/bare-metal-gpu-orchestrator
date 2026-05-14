@@ -23,9 +23,9 @@ kubectl get namespaces | grep ml-workloads
 
 ---
 
-## Step 0: The Unified Base Image
+## Step 0: Unified Base Image Architecture
 
-Before deploying workloads to Kubernetes, you must understand how our Docker images are built. Instead of each microservice installing `torch` separately (which wastes disk space and build time), we use a **Unified Base Image** powered by the ultra-fast `uv` package manager.
+To optimize storage utilization and build latency, microservices inherit from a unified base image utilizing the `uv` package manager for dependency resolution.
 
 ```dockerfile
 # services/base/Dockerfile.base
@@ -43,10 +43,10 @@ COPY main.py .
 CMD ["python3", "main.py"]
 ```
 
-**To build the base image locally:**
+**To compile the base image:**
 ```bash
 make build-base
-# or start the whole local environment:
+# Start local environment:
 make run-local
 ```
 
@@ -819,7 +819,7 @@ kubectl exec -n ml-workloads deployment/embedding-service -- nvidia-smi
 
 ## Verification Checklist
 
-### ✅ Deployment Verification
+### Deployment Verification
 
 ```bash
 # 1. All deployments are running
@@ -835,7 +835,7 @@ kubectl get pods -n ml-workloads -o jsonpath='{range .items[*]}{.metadata.name}{
 # Expected: Each pod shows "1"
 ```
 
-### ✅ Memory Configuration Verification
+### Memory Configuration Verification
 
 ```bash
 # 4. Pod logs show correct memory configuration
@@ -853,7 +853,7 @@ kubectl get events -n ml-workloads --field-selector reason=OOMKilling
 # Expected: No events returned
 ```
 
-### ✅ Functional Verification
+### Functional Verification
 
 ```bash
 # 7. Inference endpoints work

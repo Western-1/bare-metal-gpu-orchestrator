@@ -1,85 +1,80 @@
-# 14. Advanced Multi-GPU Topologies
+# Advanced Multi-GPU Topologies
 
-This guide covers advanced configurations for scaling beyond a single consumer GPU to heavy multi-GPU servers (e.g., a node with 4x RTX 5090s) and complex workload distribution.
+**Component:** NVIDIA Device Plugin & Node Labels  
+**Objective:** Scale fractional compute across multi-GPU nodes (e.g., 4x RTX 5090)  
+**Strategy:** Asymmetric Time-Slicing  
 
 ---
 
-## 1. Arbitrary Time-Slicing
+## 1. Arbitrary Time-Slicing Configuration
 
-In our base architecture, we configured `replicas: 4` for the GPU Time-Slicing ConfigMap. **This is not a hard hardware limit.** 
+The baseline architecture utilizes `replicas: 4` for the GPU Time-Slicing ConfigMap. This is a software-defined multiplexing parameter, not a hardware constraint. The replica count can mathematically scale arbitrarily (e.g., 10, 20).
 
-Because Time-Slicing is a purely temporal, software-based multiplexer, you can arbitrarily configure `replicas: 10`, `20`, or `100`. 
+### The VRAM Constraint
 
-### The VRAM Trap
-The limitation is not compute contexts, but **VRAM capacity**. 
-If you set `replicas: 10` on a 16GB GPU, each pod mathematically has an absolute maximum of 1.6GB of VRAM available, excluding driver overhead. 
+The limiting factor in Time-Slicing is absolute VRAM capacity, not compute contexts. 
+Deploying `replicas: 10` on a 16GB GPU restricts each logical slice to ~1.4GB of VRAM (accounting for CUDA context overhead). 
 
-If you use high replica counts, PyTorch memory fractioning (`set_per_process_memory_fraction`) becomes strictly critical to prevent out-of-memory (OOM) errors.
+Strict enforcement of PyTorch memory fractions is mandatory to prevent node-level OOM cascading:
+
 ```python
-# For replicas: 10 on a 16GB GPU, limit each process to ~1.4GB
+# Implementation for 10 replicas on a 16GB GPU (1.4GB per process)
 torch.cuda.set_per_process_memory_fraction(0.08, device=0) 
 ```
 
 ---
 
-## 2. Multi-GPU Servers (Asymmetric Slicing)
+## 2. Asymmetric Slicing on Multi-GPU Servers
 
-On a server with multiple GPUs (e.g., 4x RTX 5090s, each with 32GB VRAM), you usually do not want to slice all GPUs equally. 
+Multi-GPU architectures demand heterogeneous slicing strategies. Uniform slicing across all physical GPUs on a heavy compute node is an anti-pattern.
 
-**Example Desired Topology:**
-- **GPU 0:** Sliced into 7 parts (for lightweight Embedding APIs).
-- **GPU 1:** Sliced into 2 parts (for heavy Vision/LLM Inference).
-- **GPU 2 & 3:** Left unsliced (1:1 passthrough for heavy distributed PyTorch training).
+**Target Topology (4x GPU Node):**
+- **GPU 0:** 7 slices (High-throughput Embedding API)
+- **GPU 1:** 2 slices (Heavy Vision/LLM Inference)
+- **GPU 2 & 3:** 0 slices / 1:1 Passthrough (Distributed PyTorch Training)
 
-### Configuring Asymmetric Slicing
+### Implementation Strategy
 
-To achieve this, we use **NVIDIA Device Plugin Profiles** and **Kubernetes Node Labels**.
+The default NVIDIA Device Plugin applies a single ConfigMap globally across all detected GPUs on the host. To achieve intra-node asymmetry, you must isolate the device plugin execution:
 
-1. Create a `ConfigMap` with multiple slicing profiles:
+1. Disable the global DaemonSet device plugin for the target node.
+2. Deploy independent device plugin instances targeted to specific physical GPUs via the `NVIDIA_VISIBLE_DEVICES` environment variable.
+3. Map each isolated plugin to a unique ConfigMap containing the targeted replica count.
+
+### Alternative: Node-Level Topology (Recommended)
+
+Enterprise Kubernetes architectures abstract heterogeneity to the node level via `NodeLabels` and `NodeSelectors`, rather than complex intra-node isolation.
+
+**Topology Definition:**
+- **Node A (Inference 1):** Sliced 7x (`NodeLabel: gpu-profile=high-density`)
+- **Node B (Inference 2):** Sliced 2x (`NodeLabel: gpu-profile=low-density`)
+- **Node C (Training):** Unsliced (`NodeLabel: gpu-profile=passthrough`)
+
+**Workload Assignment:**
 ```yaml
-# manifests/gpu/advanced-slicing-config.yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: nvidia-device-plugin-config
-  namespace: kube-system
-data:
-  config.yaml: |
-    version: v1
-    sharing:
-      timeSlicing:
-        resources:
-        - name: nvidia.com/gpu
-          replicas: 7
-          # Apply only to GPUs with specific UUID or index if supported, 
-          # but practically, you apply configs at the NODE level.
-```
-*Note: The standard NVIDIA Device Plugin applies the Time-Slicing config uniformly to all GPUs on a single node. To achieve per-GPU asymmetric slicing on a single physical host, you must run multiple instances of the device plugin (one per physical GPU, using the `NVIDIA_VISIBLE_DEVICES` env var to restrict scope), each pointing to a different ConfigMap.*
-
-### Better Approach: Node-Level Asymmetry
-The standard Kubernetes pattern is to achieve asymmetry at the **Node** level across a cluster:
-- **Node A (Inference Node 1):** Sliced 7 ways (Node label: `gpu-slice: embeddings`)
-- **Node B (Inference Node 2):** Sliced 2 ways (Node label: `gpu-slice: vision`)
-- **Node C (Training Node):** Unsliced (Node label: `gpu-slice: none`)
-
-You then use `nodeSelector` in your workloads:
-```yaml
+# Pod Spec Definition
 nodeSelector:
-  gpu-slice: embeddings
+  gpu-profile: high-density
 ```
 
 ---
 
-## 3. Management UIs
+## 3. Dynamic Topology Management
 
-Managing complex Time-Slicing topologies strictly through YAML and `kubectl` can become unwieldy. 
+Static YAML management of dynamic GPU topographies scales poorly in production environments.
 
-### Enterprise Solutions
-Tools like **Run:ai** provide an enterprise-grade control plane that sits on top of Kubernetes, dynamically managing GPU fractional allocation, queuing, and preemption with a clean UI.
+### Enterprise Orchestration
+Commercial control planes (e.g., Run:ai) provide dynamic fractional allocation, workload queuing, and preemption layered above the native Kubernetes scheduler.
 
-### Custom Dashboards
-You can build a custom **React** or **Flutter** UI that interacts with the Kubernetes API (`/api/v1/namespaces/kube-system/configmaps/nvidia-device-plugin-config`) to dynamically update the replica counts on the fly. When the ConfigMap updates, the Device Plugin can be configured to dynamically reload, instantly altering the topological layout of the cluster.
+### API-Driven Reconfiguration
+Topology mutations can be automated via the Kubernetes API. Updating the target `ConfigMap` (`/api/v1/namespaces/kube-system/configmaps/nvidia-device-plugin-config`) and triggering a plugin reload instantly modifies the cluster's logical GPU pool without host reboots.
 
-### Observability with Grafana
-For purely visual management without mutation, rely on the **DCGM Exporter**.
-Build Grafana panels that group `DCGM_FI_DEV_FB_USED` by physical `gpu_id` and overlay the Time-Slice replica IDs to visually confirm that your fractional VRAM limits are holding steady across the arbitrary slices.
+### Telemetry and Validation
+Validate arbitrary slicing boundaries via DCGM Exporter telemetry.
+Map `DCGM_FI_DEV_FB_USED` against physical `gpu_id` to verify that fractional VRAM caps are successfully preventing memory boundary violations within the defined slices.
+
+---
+
+## Next Steps
+
+Proceed to `15-dynamic-batching-vllm.md` to configure continuous batching and PagedAttention for LLM workloads.

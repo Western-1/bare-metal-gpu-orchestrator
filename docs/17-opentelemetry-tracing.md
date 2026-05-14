@@ -1,14 +1,22 @@
-# 17. OpenTelemetry Tracing (Jaeger)
+# OpenTelemetry Tracing (Jaeger)
 
-As our GPU infrastructure scales to handle thousands of requests across multiple services (`vision`, `embedding`, `background-worker`), tracking a single user's request through the entire system becomes impossible with standard logs.
-
-To solve this, we deploy **OpenTelemetry** with **Jaeger** as our distributed tracing backend.
+**Component:** OpenTelemetry (OTel) & Jaeger  
+**Objective:** Distributed request tracing and inference latency profiling  
+**Architecture:** OTLP gRPC via Auto-Instrumentation  
 
 ---
 
-## 1. The Jaeger Architecture
+## 1. Tracing Architecture
 
-We deploy the Jaeger "all-in-one" image which includes the Collector, Storage (in-memory for local dev), and the UI.
+Scaling GPU inference across distinct microservices (`vision`, `embedding`, `background-worker`) introduces observability fragmentation. Standard stdout logging is insufficient for tracking multi-hop request lifecycles.
+
+The repository deploys **OpenTelemetry (OTel)** coupled with **Jaeger** to establish a distributed tracing backend capable of isolating discrete bottlenecks (e.g., FastAPI routing overhead vs. PyTorch CUDA execution).
+
+---
+
+## 2. Jaeger Deployment
+
+For standard telemetry ingestion, the Jaeger `all-in-one` image provisions the Collector, in-memory Storage, and the UI in a unified container.
 
 ```yaml
 # k8s/17-opentelemetry-tracing.yaml
@@ -22,26 +30,36 @@ spec:
   - name: jaeger
     image: jaegertracing/all-in-one:latest
     ports:
-    - containerPort: 16686 # UI
-    - containerPort: 4317  # OTLP gRPC (OpenTelemetry Protocol)
+    - containerPort: 16686 # Jaeger Dashboard UI
+    - containerPort: 4317  # OTLP gRPC (OpenTelemetry Protocol Ingestion)
 ```
 
-## 2. How Services Report Traces
+---
 
-Instead of instrumenting our Python code manually, we use the OpenTelemetry auto-instrumentation libraries for FastAPI and PyTorch.
+## 3. Instrumentation Telemetry
 
-When a request arrives at the `embedding-service`:
-1. FastAPI automatically creates a "Trace Span".
-2. When the request enters PyTorch (`model.encode`), a sub-span is created.
-3. The OpenTelemetry exporter sends this trace data asynchronously via gRPC to `jaeger:4317`.
+Manual instrumentation of inference endpoints is avoided. The architecture leverages OpenTelemetry auto-instrumentation binaries.
 
-## 3. Viewing Traces
+**Execution Flow (e.g., `embedding-service`):**
+1. **Ingress:** FastAPI middleware dynamically intercepts the request and generates a Root Trace Span.
+2. **Compute:** As the payload enters the PyTorch execution context (`model.encode`), OTel hooks generate execution sub-spans.
+3. **Egress:** The OTel exporter flushes the aggregate trace payload asynchronously via gRPC to `jaeger:4317`.
 
-Once deployed (via `make deploy-advanced`), you can access the Jaeger UI to visualize request flows:
+---
 
-1. **Port Forward the UI**:
-   ```bash
-   kubectl port-forward svc/jaeger 16686:16686 -n workloads
-   ```
-2. **Access the Dashboard**: Open `http://localhost:16686` in your browser.
-3. **Analyze Bottlenecks**: You will see exactly how many milliseconds were spent inside FastAPI routing vs. actual PyTorch GPU inference.
+## 4. Telemetry Analysis
+
+To visualize latency waterfalls and isolate API overhead from raw GPU execution time:
+
+```bash
+# Expose Jaeger UI locally
+kubectl port-forward svc/jaeger 16686:16686 -n workloads
+```
+
+Navigate to `http://localhost:16686`. Query by service (`embedding-service`) to inspect discrete span durations.
+
+---
+
+## Next Steps
+
+Proceed to `18-mlflow-registry.md` to configure artifact versioning and model deployment lifecycles.

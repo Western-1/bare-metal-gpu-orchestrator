@@ -30,8 +30,8 @@
 | **MLflow Registry** | `18-mlflow-registry.md` | k3s | Model registry and LoRA adapter management |
 | **FinOps Analysis** | `06-finops-roi-analysis.md` | All Components | Cost-benefit analysis and ROI calculations |
 | **Locust Load Testing** | `07-performance-benchmarks.md` | Workloads | Performance benchmarking and capacity planning |
-| **Power Management** | `08-hardware-power-optimization.md` | GPU, DCGM | GreenOps power capping and thermal optimization |
-| **NetworkPolicy** | `09-security-and-network-isolation.md` | k3s, Workloads | Zero-trust network isolation and RBAC |
+| **Power Management** | `08-hardware-power-optimization.md` | GPU, DCGM | Power capping and thermal optimization |
+| **NetworkPolicy** | `09-security-and-network-isolation.md` | k3s, Workloads | Network isolation and RBAC |
 | **Velero** | `10-disaster-recovery.md` | k3s, MinIO | Automated backup and restore operations |
 | **MinIO** | `10-disaster-recovery.md` | k3s | S3-compatible storage for backup repository |
 
@@ -153,163 +153,100 @@ flowchart TD
 
 ## Reading Guide
 
-### For New Engineers (First-Time Setup)
+### Core Implementation
+These documents must be executed sequentially to establish the base infrastructure.
 
-**Start Here:** `01-infrastructure-setup.md`
+* `01-infrastructure-setup.md`
+  - Ubuntu 24.04 system preparation.
+  - k3s installation with Docker runtime.
+  - NVIDIA Container Toolkit configuration.
+  - GPU driver verification.
+* `02-gpu-time-slicing-config.md`
+  - NVIDIA Device Plugin deployment via Helm.
+  - Time-Slicing ConfigMap creation.
+  - Scheduler verification for 4 GPU replicas.
+* `03-workloads-and-memory.md`
+  - Kubernetes Deployment templates with GPU requests.
+  - PyTorch memory fractioning to prevent OOM.
+  - FastAPI service configuration.
+* `04-observability-dcgm.md`
+  - DCGM Exporter deployment.
+  - Prometheus and Grafana setup via Helm.
+  - PromQL queries for GPU monitoring.
 
-This document provides the foundational steps for preparing the bare-metal node. Without completing these steps, no other components can function. The guide covers:
-- Ubuntu 24.04 system preparation
-- k3s installation with Docker runtime
-- NVIDIA Container Toolkit configuration
-- GPU driver verification
+### Advanced Operations
+Once the core infrastructure is running, these modules provide operational and security enhancements.
 
-**Next:** `02-gpu-time-slicing-config.md`
+* `05-gitops-cicd.md`
+  - GitHub Actions for container builds.
+  - ArgoCD for GitOps-based deployments.
+* `06-finops-roi-analysis.md`
+  - Cost comparison models.
+  - Capacity planning calculations.
+* `07-performance-benchmarks.md`
+  - Locust load testing methodologies.
+* `08-hardware-power-optimization.md`
+  - NVIDIA power capping configurations.
+  - Thermal target management.
+* `09-security-and-network-isolation.md`
+  - Kubernetes NetworkPolicy.
+  - RBAC and pod security standards.
+* `10-disaster-recovery.md`
+  - Velero automated backups to MinIO.
+  - RTO/RPO objectives and recovery runbooks.
+* `11-remote-server-deployment.md`
+  - Server hardening and UFW rules.
+  - Ingress with cert-manager Let's Encrypt TLS.
+* `12-model-caching-pvc.md`
+  - HostPath Persistent Volumes for shared Hugging Face caches.
+* `13-api-gateway-rate-limiting.md`
+  - NGINX Ingress controller annotations for traffic control.
+* `14-multi-gpu-advanced-topology.md`
+  - Scaling architectures across multiple physical GPUs.
 
-Once infrastructure is ready, configure GPU virtualization. This document explains:
-- NVIDIA Device Plugin deployment via Helm
-- Time-Slicing ConfigMap creation
-- Verification that the scheduler sees 4 GPU replicas
+### Advanced MLOps Integration
+Extensions for complex machine learning pipelines.
 
-**Then:** `03-workloads-and-memory.md`
+* `15-dynamic-batching-vllm.md`
+  - vLLM and PagedAttention configuration.
+* `16-multi-lora-architecture.md`
+  - Dynamic LoRA adapter routing on a single base model.
+* `17-opentelemetry-tracing.md`
+  - Distributed request tracing via Jaeger.
+* `18-mlflow-registry.md`
+  - Model and artifact versioning.
+* `19-concurrency-limits.md`
+  - FastAPI `asyncio.Semaphore` implementation.
+* `20-keda-autoscaling.md`
+  - Redis queue-based worker autoscaling.
+* `21-ray-distributed-ml.md`
+  - KubeRay distributed processing clusters.
 
-With GPU virtualization active, deploy your ML workloads. This document covers:
-- Kubernetes Deployment templates with GPU requests
-- PyTorch memory fractioning to prevent OOM
-- FastAPI service configuration
+### Troubleshooting Index
 
-**Finally:** `04-observability-dcgm.md`
+* **GPU not visible in pods:** Review `01-infrastructure-setup.md` (Container Toolkit) and `02-gpu-time-slicing-config.md` (Device Plugin).
+* **Pods in OOMKilled state:** Review `03-workloads-and-memory.md` (memory limits and PyTorch constraints).
+* **No metrics in Grafana:** Review `04-observability-dcgm.md` (DCGM Exporter logs and Prometheus ServiceMonitors).
+* **Scheduler rejects GPU requests:** Review `02-gpu-time-slicing-config.md` (ConfigMap and Device Plugin daemonset).
+* **ArgoCD sync failures:** Review `05-gitops-cicd.md` (Repository RBAC).
+* **Backup failures:** Review `10-disaster-recovery.md` (MinIO connectivity).
+* **Network policy drops:** Review `09-security-and-network-isolation.md` (Egress/Ingress allowances).
 
-Complete the core stack with monitoring. This document details:
-- DCGM Exporter deployment
-- Prometheus and Grafana setup via Helm
-- Critical PromQL queries for GPU monitoring
-
-### For Advanced Operations (Production Readiness)
-
-**GitOps and CI/CD:** `05-gitops-cicd.md`
-
-Automate your deployment pipeline with:
-- GitHub Actions for container builds and security scanning
-- ArgoCD for GitOps-based k3s deployments
-- Image updater and notification setup
-
-**Financial Analysis:** `06-finops-roi-analysis.md`
-
-Evaluate the economic impact with:
-- Cloud vs. bare-metal cost comparison
-- ROI calculations for Time-Slicing architecture
-- Carbon footprint and sustainability metrics
-
-**Performance Testing:** `07-performance-benchmarks.md`
-
-Validate system capacity with:
-- Locust load testing for embedding and vision APIs
-- Performance metrics and success criteria
-- Capacity planning recommendations
-
-**Power Optimization:** `08-hardware-power-optimization.md`
-
-Implement GreenOps practices with:
-- NVIDIA power capping for RTX 5070 Ti
-- Thermal target configuration
-- Energy savings calculations
-
-**Security Hardening:** `09-security-and-network-isolation.md`
-
-Secure your cluster with:
-- Kubernetes NetworkPolicy for zero-trust isolation
-- RBAC and pod security standards
-- Namespace-level security policies
-
-**Disaster Recovery:** `10-disaster-recovery.md`
-
-Ensure business continuity with:
-- Velero automated backups to MinIO
-- RTO/RPO objectives and testing procedures
-- Complete cluster recovery runbook
-
-**Remote Server Deployment:** `11-remote-server-deployment.md`
-
-Deploy on public bare-metal securely with:
-- Server hardening and UFW firewalls
-- Ingress with cert-manager Let's Encrypt TLS
-- Grafana Basic Authentication
-
-**Model Caching & PVs:** `12-model-caching-pvc.md`
-
-Optimize storage and deployment speed with:
-- HostPath Persistent Volumes mapped to NVMe SSDs
-- Shared Hugging Face model caching across replicas
-- Elimination of cold-start latency
-
-**API Gateway Rate Limiting:** `13-api-gateway-rate-limiting.md`
-
-Secure API endpoints against abuse with:
-- NGINX Ingress controller annotations
-- RPS and Connection limits per IP
-- Burst request queuing
-
-**Advanced Topology:** `14-multi-gpu-advanced-topology.md`
-
-Scale to multiple GPUs with complex topologies:
-- Arbitrary Time-Slicing scaling beyond 4 replicas
-- Asymmetric node slicing using labels and profiles
-- Enterprise UI and Grafana management integration
-
-### 🚀 Next-Gen MLOps (Enterprise Features)
-
-**Dynamic Batching:** `15-dynamic-batching-vllm.md`
-- Maximize throughput with vLLM and PagedAttention
-- Solve concurrent request bottlenecks
-
-**Multi-LoRA Serving:** `16-multi-lora-architecture.md`
-- Serve 50+ clients on one GPU slice
-- Dynamic adapter routing instead of full models
-
-**OpenTelemetry Tracing:** `17-opentelemetry-tracing.md`
-- Distributed tracing with Jaeger
-
-**MLflow Registry:** `18-mlflow-registry.md`
-- Model versioning and artifact tracking
-
-**Concurrency Limits:** `19-concurrency-limits.md`
-- FastAPI asyncio.Semaphore for OOM protection
-
-**Event-Driven Autoscaling:** `20-keda-autoscaling.md`
-- KEDA integration for Redis queue scaling
-
-**Distributed ML Processing:** `21-ray-distributed-ml.md`
-- KubeRay setup for distributed Python tasks
-
-### For Troubleshooting
-
-- **GPU not visible in pods:** Check `01-infrastructure-setup.md` (Container Toolkit) and `02-gpu-time-slicing-config.md` (Device Plugin)
-- **Pods in OOMKilled state:** Review `03-workloads-and-memory.md` (memory limits and PyTorch configuration)
-- **No metrics in Grafana:** Verify `04-observability-dcgm.md` (DCGM Exporter and Prometheus scraping)
-- **Scheduler rejects GPU requests:** Ensure `02-gpu-time-slicing-config.md` (ConfigMap applied correctly)
-- **ArgoCD sync failures:** Review `05-gitops-cicd.md` (Git repository access and credentials)
-- **Backup failures:** Check `10-disaster-recovery.md` (MinIO connectivity and Velero configuration)
-- **Network policy blocking traffic:** Verify `09-security-and-network-isolation.md` (NetworkPolicy rules and egress allowances)
-
-### For Architecture Review
-
-- **High-level design:** Review the relationship matrix and diagrams in this document
-- **Deep technical details:** Refer to [ARCHITECTURE.md](../ARCHITECTURE.md) for comprehensive methodology explanations
-- **Implementation specifics:** Each component document provides exact YAML, bash commands, and code snippets
+For architectural context, refer to the diagrams above or `ARCHITECTURE.md`.
 
 ---
 
-## Quick Reference: Verification Commands
+## Verification Commands
 
 | **Component** | **Verification Command** | **Expected Output** |
 |--------------|-------------------------|-------------------|
 | **k3s Status** | `sudo systemctl status k3s` | Active: active (running) |
 | **GPU Visibility** | `nvidia-smi` | RTX 5070 Ti listed with 16GB VRAM |
-| **Docker GPU Support** | `docker run --rm --gpus all nvidia/cuda:12.1.0-base-ubuntu22.04 nvidia-smi` | Same as host nvidia-smi output |
-| **Device Plugin Running** | `kubectl get pods -n kube-system -l name=nvidia-device-plugin-ds` | 1/1 Running |
-| **GPU Replicas Available** | `kubectl describe node gpu-node-1 | grep nvidia.com/gpu` | nvidia.com/gpu: 4 |
-| **DCGM Exporter Metrics** | `curl http://localhost:9400/metrics | grep DCGM_FI_DEV_FB_USED` | Metric values present |
-| **Prometheus Targets** | `kubectl get prometheus -n monitoring` | Available in monitoring namespace |
+| **Docker GPU Support** | `docker run --rm --gpus all nvidia/cuda:12.1.0-base-ubuntu22.04 nvidia-smi` | Output matches host nvidia-smi |
+| **Device Plugin** | `kubectl get pods -n kube-system -l name=nvidia-device-plugin-ds` | 1/1 Running |
+| **GPU Replicas** | `kubectl describe node <node-name> \| grep nvidia.com/gpu` | nvidia.com/gpu: 4 |
+| **DCGM Exporter** | `curl http://localhost:9400/metrics \| grep DCGM_FI_DEV_FB_USED` | Telemetry values present |
+| **Prometheus Targets** | `kubectl get prometheus -n monitoring` | Active |
 
 ---
 
@@ -317,14 +254,12 @@ Scale to multiple GPUs with complex topologies:
 
 | **Version** | **Date** | **Changes** |
 |-------------|----------|-------------|
-| 1.0 | 2026-07-02 | Initial documentation structure created |
+| 1.0 | 2026-07-02 | Initial documentation baseline. |
 
----
+## Maintenance
 
-## Contributing
-
-When modifying this documentation:
-1. Update the relationship matrix if component dependencies change
-2. Regenerate Mermaid diagrams if architecture evolves
-3. Update verification commands if tooling versions change
-4. Increment the version history with each significant update
+When modifying this documentation cluster:
+1. Update the relationship matrix if dependencies change.
+2. Regenerate Mermaid diagrams.
+3. Update verification commands if tooling versions are bumped.
+4. Increment the version history block.

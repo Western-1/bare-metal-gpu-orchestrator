@@ -1,64 +1,57 @@
-# 11. Remote Server Deployment & Security
+# Remote Server Deployment and Security
 
-Deploying bare-metal GPU clusters on public cloud providers (e.g., Hetzner, Lambda Labs) requires strict security hardening. Unlike managed Kubernetes services (EKS, GKE), you are fully responsible for the node's perimeter security.
-
-This guide covers hardening the host firewall, securing ingress traffic with TLS, and adding authentication to public endpoints.
+**Component:** Perimeter Security and Ingress Control  
+**Objective:** Secure bare-metal remote GPU clusters (e.g., Hetzner, Lambda Labs)  
+**Security Model:** UFW Hardening, TLS Encryption, Nginx Basic Auth  
 
 ---
 
-## 1. Server Hardening (UFW)
+## 1. Host Perimeter Hardening (UFW)
 
-By default, k3s exposes its API server on port 6443, and your services might be unnecessarily exposed on NodePorts. We must lock down the server using UFW (Uncomplicated Firewall).
+Bare-metal deployments lack cloud-provider security groups. Host-level iptables/UFW configurations are mandatory to prevent unauthorized access to the k3s API (port 6443) and NodePorts.
 
-### Configure UFW Rules
+### UFW Configuration
 
-We will default to deny all incoming traffic, allowing only HTTP, HTTPS, and a custom SSH port (e.g., port 2222).
+Apply a strict default-deny ingress policy while permitting internal CNI traffic.
 
 ```bash
-# First, change SSH port in /etc/ssh/sshd_config from 22 to 2222, then restart sshd
-# sudo nano /etc/ssh/sshd_config
+# Update SSH daemon port
+# sudo nano /etc/ssh/sshd_config (Change Port 22 to 2222)
 # sudo systemctl restart sshd
 
-# Reset UFW to default deny
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
 
-# Allow custom SSH port
+# Allow designated SSH port
 sudo ufw allow 2222/tcp
 
-# Allow HTTP and HTTPS for Ingress
+# Allow HTTP/HTTPS for Nginx Ingress
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
 
-# IMPORTANT: Allow k3s internal pod and service networks (Flannel CNI)
-# This prevents UFW from blocking internal Kubernetes traffic
+# Whitelist k3s internal CNI networking (Flannel)
 sudo ufw allow in on cni0
 sudo ufw allow in on flannel.1
-sudo ufw allow 10.42.0.0/16  # Default k3s pod CIDR
-sudo ufw allow 10.43.0.0/16  # Default k3s service CIDR
+sudo ufw allow 10.42.0.0/16  # Pod CIDR
+sudo ufw allow 10.43.0.0/16  # Service CIDR
 
-# Enable UFW
 sudo ufw enable
 ```
 
 ---
 
-## 2. Ingress & HTTPS (cert-manager)
+## 2. Ingress TLS Encryption (cert-manager)
 
-To serve production APIs, you must encrypt traffic using Let's Encrypt TLS certificates.
+Public APIs require TLS termination. This implementation utilizes `cert-manager` for automated Let's Encrypt certificate provisioning.
 
 ### Install cert-manager
 
 ```bash
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
-
-# Verify installation
 kubectl get pods -n cert-manager
 ```
 
-### Configure Let's Encrypt ClusterIssuer
-
-Create a `ClusterIssuer` to automatically request certificates for your domains.
+### ClusterIssuer Configuration
 
 ```yaml
 # manifests/security/letsencrypt-prod.yaml
@@ -69,7 +62,7 @@ metadata:
 spec:
   acme:
     server: https://acme-v02.api.letsencrypt.org/directory
-    email: your-email@example.com
+    email: security@yourdomain.com
     privateKeySecretRef:
       name: letsencrypt-prod
     solvers:
@@ -78,14 +71,11 @@ spec:
           class: nginx
 ```
 
-Apply the issuer:
 ```bash
 kubectl apply -f manifests/security/letsencrypt-prod.yaml
 ```
 
-### Apply TLS to Ingress
-
-Update your API ingress to use the cert-manager issuer:
+### Ingress Manifest Integration
 
 ```yaml
 # manifests/networking/api-ingress.yaml
@@ -118,28 +108,24 @@ spec:
 
 ---
 
-## 3. Securing Public Endpoints (Grafana Auth)
+## 3. Public Endpoint Authentication (Grafana)
 
-If you are exposing Grafana publicly, you must secure it. Since we are using basic Nginx ingress, we can implement Basic Authentication via `htpasswd` to add an additional layer of security over Grafana's default login.
+Internal observability endpoints exposed publicly must implement Defense in Depth. Layer Nginx Basic Authentication over Grafana's application authentication.
 
-### Create the htpasswd Secret
-
-Run this on your local machine or the server to generate the auth file:
+### Generate Authentication Secret
 
 ```bash
-# Install apache2-utils if needed
-sudo apt-get install apache2-utils
+# Install apache2-utils locally or on jump host
+sudo apt-get install apache2-utils -y
 
-# Create an auth file with a strong user password
+# Generate htpasswd credential file
 htpasswd -c auth admin_user
 
-# Create a Kubernetes Secret from the file
+# Inject into cluster
 kubectl create secret generic basic-auth -n monitoring --from-file=auth
 ```
 
-### Apply Basic Auth to Grafana Ingress
-
-Add the authentication annotations to the Grafana ingress:
+### Ingress Basic Auth Integration
 
 ```yaml
 # manifests/monitoring/grafana-ingress.yaml
@@ -150,7 +136,6 @@ metadata:
   namespace: monitoring
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    # Basic Auth annotations
     nginx.ingress.kubernetes.io/auth-type: basic
     nginx.ingress.kubernetes.io/auth-secret: basic-auth
     nginx.ingress.kubernetes.io/auth-realm: "Authentication Required"
@@ -173,4 +158,8 @@ spec:
               number: 80
 ```
 
-This ensures that even if Grafana has a vulnerability, attackers must first bypass the Nginx HTTP basic authentication layer.
+---
+
+## Next Steps
+
+Proceed to `12-model-caching-pvc.md` to configure high-performance PersistentVolumeClaims for model weight caching.
