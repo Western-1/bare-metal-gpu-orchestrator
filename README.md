@@ -54,6 +54,11 @@ All architectural decisions, configurations, and runbooks are documented in the 
 * [19-concurrency-limits.md](docs/19-concurrency-limits.md) - FastAPI semaphores for OOM protection.
 * [20-keda-autoscaling.md](docs/20-keda-autoscaling.md) - Redis queue-based autoscaling for workers.
 * [21-ray-distributed-ml.md](docs/21-ray-distributed-ml.md) - KubeRay clusters for distributed ML tasks.
+* [22-node-resource-reservation.md](docs/22-node-resource-reservation.md) - Kubelet OS stability reservations.
+* [23-model-quantization-strategies.md](docs/23-model-quantization-strategies.md) - 4-bit model quantization.
+* [24-log-aggregation-loki.md](docs/24-log-aggregation-loki.md) - Centralized logging with PLG.
+* [25-storage-io-optimization.md](docs/25-storage-io-optimization.md) - NVMe RAID for faster model loads.
+* [26-gpu-node-maintenance.md](docs/26-gpu-node-maintenance.md) - Zero-downtime maintenance and driver updates.
 
 ## Local Development
 

@@ -222,6 +222,18 @@ Extensions for complex machine learning pipelines.
 * `21-ray-distributed-ml.md`
   - KubeRay distributed processing clusters.
 
+### System Administration & Advanced Optimization
+* `22-node-resource-reservation.md`
+  - Kubelet resource allocations for OS stability.
+* `23-model-quantization-strategies.md`
+  - AWQ and GPTQ 4-bit compression for VRAM boundaries.
+* `24-log-aggregation-loki.md`
+  - Centralized PLG stack for unified container logging.
+* `25-storage-io-optimization.md`
+  - NVMe RAID 0 and XFS tuning for rapid model loads.
+* `26-gpu-node-maintenance.md`
+  - Zero-downtime cordon and drain procedures for kernel patches.
+
 ### Troubleshooting Index
 
 * **GPU not visible in pods:** Review `01-infrastructure-setup.md` (Container Toolkit) and `02-gpu-time-slicing-config.md` (Device Plugin).
