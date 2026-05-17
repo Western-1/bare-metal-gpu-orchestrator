@@ -233,6 +233,18 @@ Extensions for complex machine learning pipelines.
   - NVMe RAID 0 and XFS tuning for rapid model loads.
 * `26-gpu-node-maintenance.md`
   - Zero-downtime cordon and drain procedures for kernel patches.
+* `27-distributed-storage-ceph.md`
+  - CephFS architecture for multi-node model caching.
+* `28-service-mesh-istio.md`
+  - Istio Sidecars, mTLS, and advanced circuit breaking.
+* `29-nccl-rdma-networking.md`
+  - GPU-Direct RDMA over Converged Ethernet (RoCEv2) for NCCL.
+* `30-continuous-profiling-pyroscope.md`
+  - Identifying Python GIL contention via Grafana Pyroscope.
+* `31-mig-vs-time-slicing.md`
+  - Hardware vs Software GPU multiplexing topology selection.
+* `32-spot-instance-preemption.md`
+  - Workload survivability under sudden instance termination.
 
 ### Troubleshooting Index
 

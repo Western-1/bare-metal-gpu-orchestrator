@@ -59,6 +59,12 @@ All architectural decisions, configurations, and runbooks are documented in the 
 * [24-log-aggregation-loki.md](docs/24-log-aggregation-loki.md) - Centralized logging with PLG.
 * [25-storage-io-optimization.md](docs/25-storage-io-optimization.md) - NVMe RAID for faster model loads.
 * [26-gpu-node-maintenance.md](docs/26-gpu-node-maintenance.md) - Zero-downtime maintenance and driver updates.
+* [27-distributed-storage-ceph.md](docs/27-distributed-storage-ceph.md) - CephFS for High-Availability model sharing.
+* [28-service-mesh-istio.md](docs/28-service-mesh-istio.md) - Istio Sidecars, mTLS, and Circuit Breaking.
+* [29-nccl-rdma-networking.md](docs/29-nccl-rdma-networking.md) - RDMA and RoCEv2 for distributed training.
+* [30-continuous-profiling-pyroscope.md](docs/30-continuous-profiling-pyroscope.md) - Profiling Python GIL with Pyroscope.
+* [31-mig-vs-time-slicing.md](docs/31-mig-vs-time-slicing.md) - Architectural deep-dive of GPU multiplexing.
+* [32-spot-instance-preemption.md](docs/32-spot-instance-preemption.md) - Preemption handling for spot instances.
 
 ## Local Development
 
