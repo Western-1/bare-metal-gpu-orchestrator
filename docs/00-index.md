@@ -246,6 +246,24 @@ Extensions for complex machine learning pipelines.
 * `32-spot-instance-preemption.md`
   - Workload survivability under sudden instance termination.
 
+### Hyper-Scale Enterprise Topologies
+* `33-triton-inference-server.md`
+  - NVIDIA Triton & TensorRT for extreme Vision/Audio throughput.
+* `34-rag-vector-database.md`
+  - Qdrant/Milvus deployment for scalable RAG pipelines.
+* `35-secrets-management-vault.md`
+  - HashiCorp Vault & External Secrets Operator (ESO) integration.
+* `36-air-gapped-deployments.md`
+  - Offline AI deployments with Harbor and HuggingFace caching.
+* `37-ha-control-plane.md`
+  - High Availability k3s Masters with external PostgreSQL.
+* `38-finops-kubecost-chargeback.md`
+  - GPU cost attribution and internal chargeback via Kubecost.
+* `39-multi-cluster-federation.md`
+  - Geographically distributed ML via Karmada Federation.
+* `40-automated-model-evaluation.md`
+  - LLM-as-a-Judge and Ragas continuous evaluation pipelines.
+
 ### Troubleshooting Index
 
 * **GPU not visible in pods:** Review `01-infrastructure-setup.md` (Container Toolkit) and `02-gpu-time-slicing-config.md` (Device Plugin).

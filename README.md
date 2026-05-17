@@ -65,6 +65,14 @@ All architectural decisions, configurations, and runbooks are documented in the 
 * [30-continuous-profiling-pyroscope.md](docs/30-continuous-profiling-pyroscope.md) - Profiling Python GIL with Pyroscope.
 * [31-mig-vs-time-slicing.md](docs/31-mig-vs-time-slicing.md) - Architectural deep-dive of GPU multiplexing.
 * [32-spot-instance-preemption.md](docs/32-spot-instance-preemption.md) - Preemption handling for spot instances.
+* [33-triton-inference-server.md](docs/33-triton-inference-server.md) - Triton & TensorRT for max throughput.
+* [34-rag-vector-database.md](docs/34-rag-vector-database.md) - Qdrant/Milvus setup for RAG pipelines.
+* [35-secrets-management-vault.md](docs/35-secrets-management-vault.md) - HashiCorp Vault and External Secrets.
+* [36-air-gapped-deployments.md](docs/36-air-gapped-deployments.md) - Offline AI via Harbor registry.
+* [37-ha-control-plane.md](docs/37-ha-control-plane.md) - K3s High Availability with external Postgres.
+* [38-finops-kubecost-chargeback.md](docs/38-finops-kubecost-chargeback.md) - Granular GPU chargeback with Kubecost.
+* [39-multi-cluster-federation.md](docs/39-multi-cluster-federation.md) - Karmada for distributed scaling.
+* [40-automated-model-evaluation.md](docs/40-automated-model-evaluation.md) - LLM-as-a-Judge and Ragas CI/CD pipeline.
 
 ## Local Development
 
