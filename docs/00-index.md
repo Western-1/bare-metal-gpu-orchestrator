@@ -263,6 +263,16 @@ Extensions for complex machine learning pipelines.
   - Geographically distributed ML via Karmada Federation.
 * `40-automated-model-evaluation.md`
   - LLM-as-a-Judge and Ragas continuous evaluation pipelines.
+* `41-feature-store-feast.md`
+  - Feast Feature Store for caching real-time ML features.
+* `42-model-drift-evidently.md`
+  - Data Drift detection using Evidently AI.
+* `43-confidential-computing-tee.md`
+  - Trusted Execution Environments (TEE) for model weight protection.
+* `44-slsa-supply-chain-security.md`
+  - SLSA Level 3 image signing and Kyverno validation.
+* `45-energy-attribution-kepler.md`
+  - Granular Watt-Hour tracking per Pod via Kepler eBPF.
 
 ### Troubleshooting Index
 

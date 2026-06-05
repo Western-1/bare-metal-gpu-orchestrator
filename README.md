@@ -79,6 +79,11 @@ All architectural decisions, configurations, and runbooks are documented in the 
 * [38-finops-kubecost-chargeback.md](docs/38-finops-kubecost-chargeback.md) - Granular GPU chargeback with Kubecost.
 * [39-multi-cluster-federation.md](docs/39-multi-cluster-federation.md) - Karmada for distributed scaling.
 * [40-automated-model-evaluation.md](docs/40-automated-model-evaluation.md) - LLM-as-a-Judge and Ragas CI/CD pipeline.
+* [41-feature-store-feast.md](docs/41-feature-store-feast.md) - Feast Feature Store caching.
+* [42-model-drift-evidently.md](docs/42-model-drift-evidently.md) - Data drift monitoring.
+* [43-confidential-computing-tee.md](docs/43-confidential-computing-tee.md) - TEE hardware encryption for weights.
+* [44-slsa-supply-chain-security.md](docs/44-slsa-supply-chain-security.md) - SLSA Level 3 image signing.
+* [45-energy-attribution-kepler.md](docs/45-energy-attribution-kepler.md) - eBPF energy consumption tracking.
 * [CONTRIBUTING.md](CONTRIBUTING.md) - Open source governance and engineering standards.
 
 ## Local Development
