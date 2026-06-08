@@ -84,6 +84,11 @@ All architectural decisions, configurations, and runbooks are documented in the 
 * [43-confidential-computing-tee.md](docs/43-confidential-computing-tee.md) - TEE hardware encryption for weights.
 * [44-slsa-supply-chain-security.md](docs/44-slsa-supply-chain-security.md) - SLSA Level 3 image signing.
 * [45-energy-attribution-kepler.md](docs/45-energy-attribution-kepler.md) - eBPF energy consumption tracking.
+* [46-data-version-control-dvc.md](docs/46-data-version-control-dvc.md) - Dataset versioning with DVC.
+* [47-hyperparameter-tuning.md](docs/47-hyperparameter-tuning.md) - Ray Tune distributed HPO.
+* [48-canary-deployments-ab-testing.md](docs/48-canary-deployments-ab-testing.md) - Istio Canary testing models.
+* [49-gpu-direct-storage.md](docs/49-gpu-direct-storage.md) - GPUDirect NVMe storage optimization.
+* [50-continuous-ml-cml.md](docs/50-continuous-ml-cml.md) - CML reporting in Pull Requests.
 * [CONTRIBUTING.md](CONTRIBUTING.md) - Open source governance and engineering standards.
 
 ## Local Development

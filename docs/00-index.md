@@ -273,6 +273,16 @@ Extensions for complex machine learning pipelines.
   - SLSA Level 3 image signing and Kyverno validation.
 * `45-energy-attribution-kepler.md`
   - Granular Watt-Hour tracking per Pod via Kepler eBPF.
+* `46-data-version-control-dvc.md`
+  - DVC tracking for terabyte-scale MinIO datasets.
+* `47-hyperparameter-tuning.md`
+  - Distributed HPO with Ray Tune and Optuna.
+* `48-canary-deployments-ab-testing.md`
+  - Istio VirtualServices for Canary and Dark Launch testing.
+* `49-gpu-direct-storage.md`
+  - Bypassing CPU for direct NVMe to VRAM model loading.
+* `50-continuous-ml-cml.md`
+  - CI/CD automation for model accuracy in PR comments.
 
 ### Troubleshooting Index
 
