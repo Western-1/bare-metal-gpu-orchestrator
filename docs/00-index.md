@@ -284,6 +284,20 @@ Extensions for complex machine learning pipelines.
 * `50-continuous-ml-cml.md`
   - CI/CD automation for model accuracy in PR comments.
 
+### Platform Engineering & Advanced DX
+* `51-bare-metal-load-balancing.md`
+  - Highly Available external routing with MetalLB (L2/BGP).
+* `52-llm-guardrails.md`
+  - Real-time semantic validation against prompt injections.
+* `53-k8s-runtime-security-falco.md`
+  - eBPF runtime syscall monitoring and threat detection.
+* `54-ml-pipeline-orchestration.md`
+  - DAG-based end-to-end MLOps using Argo Workflows.
+* `55-scale-to-zero-knative.md`
+  - Serverless HTTP endpoints to reclaim idle GPU memory.
+* `56-jupyterhub-ml-workspaces.md`
+  - Interactive multi-user Data Science environments.
+
 ### Troubleshooting Index
 
 * **GPU not visible in pods:** Review `01-infrastructure-setup.md` (Container Toolkit) and `02-gpu-time-slicing-config.md` (Device Plugin).

@@ -89,6 +89,12 @@ All architectural decisions, configurations, and runbooks are documented in the 
 * [48-canary-deployments-ab-testing.md](docs/48-canary-deployments-ab-testing.md) - Istio Canary testing models.
 * [49-gpu-direct-storage.md](docs/49-gpu-direct-storage.md) - GPUDirect NVMe storage optimization.
 * [50-continuous-ml-cml.md](docs/50-continuous-ml-cml.md) - CML reporting in Pull Requests.
+* [51-bare-metal-load-balancing.md](docs/51-bare-metal-load-balancing.md) - MetalLB for external traffic.
+* [52-llm-guardrails.md](docs/52-llm-guardrails.md) - Real-time NeMo safety guardrails.
+* [53-k8s-runtime-security-falco.md](docs/53-k8s-runtime-security-falco.md) - Falco runtime threat detection.
+* [54-ml-pipeline-orchestration.md](docs/54-ml-pipeline-orchestration.md) - Argo Workflows for ML DAGs.
+* [55-scale-to-zero-knative.md](docs/55-scale-to-zero-knative.md) - Knative serverless scaling.
+* [56-jupyterhub-ml-workspaces.md](docs/56-jupyterhub-ml-workspaces.md) - JupyterHub developer workspaces.
 * [CONTRIBUTING.md](CONTRIBUTING.md) - Open source governance and engineering standards.
 
 ## Local Development
