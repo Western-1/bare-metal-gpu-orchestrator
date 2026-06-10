@@ -95,6 +95,10 @@ All architectural decisions, configurations, and runbooks are documented in the 
 * [54-ml-pipeline-orchestration.md](docs/54-ml-pipeline-orchestration.md) - Argo Workflows for ML DAGs.
 * [55-scale-to-zero-knative.md](docs/55-scale-to-zero-knative.md) - Knative serverless scaling.
 * [56-jupyterhub-ml-workspaces.md](docs/56-jupyterhub-ml-workspaces.md) - JupyterHub developer workspaces.
+* [57-ai-api-gateway-litellm.md](docs/57-ai-api-gateway-litellm.md) - LiteLLM API Gateway and Cost Tracking.
+* [58-semantic-caching-redis.md](docs/58-semantic-caching-redis.md) - GPTCache and Redis Semantic Caching.
+* [59-structured-json-outputs.md](docs/59-structured-json-outputs.md) - Outlines/Guidance JSON formatting.
+* [60-stateful-ai-agents-langgraph.md](docs/60-stateful-ai-agents-langgraph.md) - LangGraph Stateful Agents.
 * [CONTRIBUTING.md](CONTRIBUTING.md) - Open source governance and engineering standards.
 
 ## Local Development

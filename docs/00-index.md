@@ -298,6 +298,16 @@ Extensions for complex machine learning pipelines.
 * `56-jupyterhub-ml-workspaces.md`
   - Interactive multi-user Data Science environments.
 
+### AI Application Layer
+* `57-ai-api-gateway-litellm.md`
+  - Routing, fallback, and cost tracking with LiteLLM.
+* `58-semantic-caching-redis.md`
+  - Bypassing GPUs for duplicate queries using GPTCache.
+* `59-structured-json-outputs.md`
+  - Enforcing strict JSON schemas at the vLLM engine level.
+* `60-stateful-ai-agents-langgraph.md`
+  - Orchestrating persistent multi-agent workflows in Kubernetes.
+
 ### Troubleshooting Index
 
 * **GPU not visible in pods:** Review `01-infrastructure-setup.md` (Container Toolkit) and `02-gpu-time-slicing-config.md` (Device Plugin).
