@@ -99,6 +99,8 @@ All architectural decisions, configurations, and runbooks are documented in the 
 * [58-semantic-caching-redis.md](docs/58-semantic-caching-redis.md) - GPTCache and Redis Semantic Caching.
 * [59-structured-json-outputs.md](docs/59-structured-json-outputs.md) - Outlines/Guidance JSON formatting.
 * [60-stateful-ai-agents-langgraph.md](docs/60-stateful-ai-agents-langgraph.md) - LangGraph Stateful Agents.
+* [61-multimodal-vision-models.md](docs/61-multimodal-vision-models.md) - Triton Vision & LLaVA scaling.
+* [62-agentic-long-term-memory.md](docs/62-agentic-long-term-memory.md) - Mem0 semantic personalization (V2.0).
 * [CONTRIBUTING.md](CONTRIBUTING.md) - Open source governance and engineering standards.
 
 ## Local Development

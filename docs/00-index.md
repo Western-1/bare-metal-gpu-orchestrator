@@ -209,6 +209,8 @@ Extensions for complex machine learning pipelines.
 
 * `15-dynamic-batching-vllm.md`
   - vLLM and PagedAttention configuration.
+* `61-multimodal-vision-models.md`
+  - Triton & vLLM serving for heavy LLaVA/CLIP image tensors.
 * `16-multi-lora-architecture.md`
   - Dynamic LoRA adapter routing on a single base model.
 * `17-opentelemetry-tracing.md`
@@ -307,6 +309,10 @@ Extensions for complex machine learning pipelines.
   - Enforcing strict JSON schemas at the vLLM engine level.
 * `60-stateful-ai-agents-langgraph.md`
   - Orchestrating persistent multi-agent workflows in Kubernetes.
+
+### V2.0 Roadmap (Future Implementations)
+* `62-agentic-long-term-memory.md`
+  - Semantic cross-session memory via Mem0 and Qdrant.
 
 ### Troubleshooting Index
 
