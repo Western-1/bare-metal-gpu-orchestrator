@@ -310,6 +310,12 @@ Extensions for complex machine learning pipelines.
 * `60-stateful-ai-agents-langgraph.md`
   - Orchestrating persistent multi-agent workflows in Kubernetes.
 
+### Coutury Fashion-Tech Specifics
+* `63-background-removal-segmentation.md`
+  - Isolating clothing items via U^2-Net and Triton.
+* `64-visual-search-clip-qdrant.md`
+  - Multimodal CLIP embeddings and Qdrant visual search.
+
 ### V2.0 Roadmap (Future Implementations)
 * `62-agentic-long-term-memory.md`
   - Semantic cross-session memory via Mem0 and Qdrant.

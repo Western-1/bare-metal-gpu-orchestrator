@@ -100,6 +100,8 @@ All architectural decisions, configurations, and runbooks are documented in the 
 * [59-structured-json-outputs.md](docs/59-structured-json-outputs.md) - Outlines/Guidance JSON formatting.
 * [60-stateful-ai-agents-langgraph.md](docs/60-stateful-ai-agents-langgraph.md) - LangGraph Stateful Agents.
 * [61-multimodal-vision-models.md](docs/61-multimodal-vision-models.md) - Triton Vision & LLaVA scaling.
+* [63-background-removal-segmentation.md](docs/63-background-removal-segmentation.md) - U^2-Net background removal.
+* [64-visual-search-clip-qdrant.md](docs/64-visual-search-clip-qdrant.md) - CLIP embeddings visual search.
 * [62-agentic-long-term-memory.md](docs/62-agentic-long-term-memory.md) - Mem0 semantic personalization (V2.0).
 * [CONTRIBUTING.md](CONTRIBUTING.md) - Open source governance and engineering standards.
 
