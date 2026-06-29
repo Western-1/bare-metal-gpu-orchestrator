@@ -315,6 +315,8 @@ Extensions for complex machine learning pipelines.
   - Isolating clothing items via U^2-Net and Triton.
 * `64-visual-search-clip-qdrant.md`
   - Multimodal CLIP embeddings and Qdrant visual search.
+* `65-virtual-try-on-diffusion.md`
+  - Generative AI Virtual Try-On (VTON) via Stable Diffusion.
 
 ### V2.0 Roadmap (Future Implementations)
 * `62-agentic-long-term-memory.md`
