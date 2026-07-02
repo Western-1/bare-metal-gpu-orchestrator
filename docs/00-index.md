@@ -153,7 +153,10 @@ flowchart TD
 
 ## Reading Guide
 
-### Core Implementation
+### 🟢 Phase 1: Implemented & Tested (MVP Infrastructure)
+*These modules represent the configurations currently running in our bare-metal environment.*
+
+#### Core Implementation
 These documents must be executed sequentially to establish the base infrastructure.
 
 * `01-infrastructure-setup.md`
@@ -248,7 +251,10 @@ Extensions for complex machine learning pipelines.
 * `32-spot-instance-preemption.md`
   - Workload survivability under sudden instance termination.
 
-### Hyper-Scale Enterprise Topologies
+### 🟡 Phase 2: Researched & Designed (Architecture Notes)
+*These modules contain architectural designs, best practices, and blueprints researched for future scaling, but not yet fully deployed in the MVP.*
+
+#### Hyper-Scale Enterprise Topologies
 * `33-triton-inference-server.md`
   - NVIDIA Triton & TensorRT for extreme Vision/Audio throughput.
 * `34-rag-vector-database.md`

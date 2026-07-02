@@ -36,7 +36,9 @@ All architectural decisions, configurations, and runbooks are documented in the 
 
 *Start here:* [docs/00-index.md](docs/00-index.md) provides the complete reading guide and component relationship matrix.
 
-**Infrastructure & Configuration**
+**Phase 1: Implemented & Tested (MVP Core Infrastructure)**
+*These modules represent the exact runbooks, scripts, and architectures currently deployed and tested on our physical bare-metal hardware.*
+
 * [01-infrastructure-setup.md](docs/01-infrastructure-setup.md) - Bare-metal and k3s preparation.
 * [02-gpu-time-slicing-config.md](docs/02-gpu-time-slicing-config.md) - NVIDIA device plugin and ConfigMap setup.
 * [03-workloads-and-memory.md](docs/03-workloads-and-memory.md) - Deploying PyTorch workloads safely.
@@ -71,6 +73,11 @@ All architectural decisions, configurations, and runbooks are documented in the 
 * [30-continuous-profiling-pyroscope.md](docs/30-continuous-profiling-pyroscope.md) - Profiling Python GIL with Pyroscope.
 * [31-mig-vs-time-slicing.md](docs/31-mig-vs-time-slicing.md) - Architectural deep-dive of GPU multiplexing.
 * [32-spot-instance-preemption.md](docs/32-spot-instance-preemption.md) - Preemption handling for spot instances.
+* [32-spot-instance-preemption.md](docs/32-spot-instance-preemption.md) - Preemption handling for spot instances.
+
+**Phase 2: Researched & Designed (Architecture Notes / Scaling)**
+*These modules contain detailed engineering specifications and architectural research for the next stage of hyper-scaling. They are designed but not yet fully deployed in the current MVP.*
+
 * [33-triton-inference-server.md](docs/33-triton-inference-server.md) - Triton & TensorRT for max throughput.
 * [34-rag-vector-database.md](docs/34-rag-vector-database.md) - Qdrant/Milvus setup for RAG pipelines.
 * [35-secrets-management-vault.md](docs/35-secrets-management-vault.md) - HashiCorp Vault and External Secrets.
